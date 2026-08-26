@@ -309,7 +309,67 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
         </div>
       </div>
       <!-- GRIGLIA DISTANZE -->
-      <div class="dist-grid">
+      
+      <!-- MAPPA BUCA SVG -->
+      <div id="hole-svg-map" style="position:relative;width:100%;margin-bottom:10px;border-radius:12px;overflow:hidden;background:#1a4a28">
+        <div id="hole-map-img-wrap" style="position:relative;width:100%;min-height:200px">
+          <img id="hole-map-img" src="" alt="Mappa buca" 
+            style="width:100%;display:block;opacity:0;transition:opacity .3s"
+            onload="this.style.opacity=1;document.getElementById('hole-map-svg-overlay').style.opacity=1"
+            onerror="document.getElementById('hole-map-fallback').style.display='flex'">
+          <!-- Fallback se immagine non carica -->
+          <div id="hole-map-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:#1a3d2b;color:rgba(255,255,255,.5);font-size:13px;font-family:Outfit,sans-serif">
+            <div style="font-size:32px">🗺️</div>
+            <div>Carica le immagini su GitHub</div>
+          </div>
+          <!-- SVG overlay con linea e marker -->
+          <svg id="hole-map-svg-overlay" viewBox="0 0 100 160" preserveAspectRatio="none"
+            style="position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s">
+            <!-- Linea dal tee alla bandiera -->
+            <line id="map-line" x1="50" y1="148" x2="50" y2="12" 
+              stroke="white" stroke-width="0.8" stroke-dasharray="3,2" opacity=".85"/>
+            <!-- Badge distanza intermedia -->
+            <rect id="map-dist-badge" x="54" y="72" width="20" height="10" rx="5" fill="#000" opacity=".65"/>
+            <text id="map-dist-text" x="64" y="80" text-anchor="middle" font-size="6" fill="white" font-family="sans-serif" font-weight="bold">–m</text>
+            <!-- Marker bandiera (green - in alto) -->
+            <circle cx="50" cy="12" r="5" fill="#e53e3e" opacity=".9"/>
+            <text x="50" y="15.5" text-anchor="middle" font-size="5" fill="white">⛳</text>
+            <!-- Marker tee (in basso) -->
+            <circle cx="50" cy="148" r="5" fill="#f4d03f" opacity=".95"/>
+            <text x="50" y="151" text-anchor="middle" font-size="4.5" fill="#1a3d2b" font-weight="bold">T</text>
+            <!-- Marker posizione corrente (solo quando GPS attivo) -->
+            <circle id="map-pos-marker" cx="50" cy="148" r="4" fill="#f4a261" opacity="0">
+              <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </div>
+        <!-- Info buca overlay in alto -->
+        <div style="position:absolute;top:0;left:0;right:0;background:linear-gradient(rgba(0,0,0,.75),transparent);padding:8px 10px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="color:#fff;font-size:14px;font-weight:700;font-family:Outfit,sans-serif" id="map-hole-label">Buca 1</div>
+            <div style="display:flex;gap:6px">
+              <span id="map-par-badge" style="background:#1a3d2b;color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;font-family:Outfit,sans-serif">Par 4</span>
+              <span id="map-dist-badge2" style="background:rgba(255,255,255,.15);color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-family:Outfit,sans-serif">374m</span>
+            </div>
+          </div>
+        </div>
+        <!-- Legenda in basso -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:6px 10px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#fff;font-family:Outfit,sans-serif">
+              <div style="width:8px;height:8px;border-radius:50%;background:#e53e3e"></div>Green
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#fff;font-family:Outfit,sans-serif">
+              <div style="width:8px;height:8px;border-radius:50%;background:#f4d03f"></div>Tee
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#fff;font-family:Outfit,sans-serif" id="map-gps-legend" style="display:none">
+              <div style="width:8px;height:8px;border-radius:50%;background:#f4a261"></div>Tu
+            </div>
+          </div>
+        </div>
+      </div>
+
+<div class="dist-grid">
         <div class="dist-card">
           <div class="dist-card-label">📍 Prossimo colpo</div>
           <div class="dist-card-val" id="dist-next">–</div>
@@ -680,6 +740,7 @@ function setGpsStatus(color,text,acc){
 }
 
 function updateGpsDistances(){
+  updateMapGpsPosition();
   if(!currentPos||curTab!=='gps')return;
   const h=S[curHole];
   const g=h.gps;
@@ -791,11 +852,30 @@ function markFlag(){
     return;
   }
   S[curHole].gps.flagPos={lat:currentPos.lat,lng:currentPos.lng};
-  document.getElementById('flag-set-status').textContent='✓ Segnata';
-  document.getElementById('flag-set-status').style.color='var(--gm)';
+  saveFlagPositions();
+  const fs=document.getElementById('flag-set-status');
+  if(fs){fs.textContent='Segnata';fs.style.color='var(--gm)';}
   updateGpsDistances();
   if(navigator.vibrate)navigator.vibrate([80,40,80]);
+  speak('Bandiera segnata. Buca '+S[curHole].n, false);
   saveState();
+}
+
+function saveFlagPositions(){
+  try{
+    const flags=S.map(h=>h.gps.flagPos);
+    localStorage.setItem('golf_sv_flags',JSON.stringify(flags));
+  }catch(e){}
+}
+
+function loadFlagPositions(){
+  try{
+    const raw=localStorage.getItem('golf_sv_flags');
+    if(!raw)return;
+    const flags=JSON.parse(raw);
+    flags.forEach((f,i)=>{if(f&&S[i])S[i].gps.flagPos=f;});
+    console.log('Bandiere caricate dalla memoria');
+  }catch(e){}
 }
 
 function markTee(){
@@ -1036,6 +1116,10 @@ function renderTabContent(mode){
           <button class="cbtn" ontouchstart="" onclick="adjTotal(${curHole},+1)">+</button>
         </div>
       </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button onclick="addPenalty(${curHole},1,'acqua')" style="flex:1;padding:10px;background:#dbeafe;border:none;border-radius:10px;font-size:12px;font-weight:600;color:#1d4ed8;cursor:pointer;font-family:Outfit,sans-serif">💧 +1 Acqua</button>
+        <button onclick="addPenalty(${curHole},2,'OB')" style="flex:1;padding:10px;background:#fee2e2;border:none;border-radius:10px;font-size:12px;font-weight:600;color:#991b1b;cursor:pointer;font-family:Outfit,sans-serif">🚫 +2 OB/Persa</button>
+      </div>
       <div class="spreview">
         <div class="spi"><div class="spil">Piano</div><div class="spiv">${calcPlanTot(curHole)}</div></div>
         <div class="spi"><div class="spil">Reale</div><div class="spiv" id="prev-tot">${ctot}</div></div>
@@ -1089,7 +1173,8 @@ function toggleDetailMode(){
 
 function openHole(i){
   curHole=i;
-  setTimeout(()=>speakHoleInfo(i), 600);
+  setTimeout(()=>showHoleMap(i), 400);
+  updateHoleMap(i);
   document.getElementById('scr-list').classList.remove('active');
   document.getElementById('scr-hole').classList.add('active');
   document.getElementById('dtitle').textContent=`Buca ${S[i].n}`;
@@ -1114,6 +1199,7 @@ function goBack(){
 
 function goHole(i){
   curHole=i;
+  updateHoleMap(i);
   document.getElementById('dtitle').textContent=`Buca ${S[i].n}`;
   document.getElementById('dsubt').textContent=`Par ${S[i].par} · ${S[i].dist}m · SI ${S[i].si}`;
   document.getElementById('gps-hole-badge').textContent=S[i].n;
@@ -1347,9 +1433,43 @@ function loadState() {
   } catch(e){ console.warn('Load error',e); return false; }
 }
 
-function resetAll() {
-  if(!confirm('Cancella gara corrente e ricomincia da zero?')) return;
+function resetAll(){
+  openResetModal();
+}
+
+function openResetModal(){
+  let el=document.getElementById('reset-modal');
+  if(!el){
+    el=document.createElement('div');
+    el.id='reset-modal';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Outfit,sans-serif';
+    document.body.appendChild(el);
+  }
+  el.style.display='flex';
+  el.innerHTML=`<div style="background:#fff;border-radius:18px;padding:24px;width:100%;max-width:340px">
+    <div style="font-size:17px;font-weight:700;color:#1a202c;margin-bottom:6px">Reset giro</div>
+    <div style="font-size:13px;color:#4a5568;margin-bottom:20px;line-height:1.5">Cosa vuoi azzerare per il nuovo giro?</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="resetKeepFlags()" style="padding:14px;background:#1a3d2b;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;text-align:left;line-height:1.5">
+        Nuovo giro - mantieni bandiere GPS<br><span style="font-size:11px;opacity:.8;font-weight:400">Azzera punteggi e colpi, tieni posizioni bandiere</span>
+      </button>
+      <button onclick="resetFull()" style="padding:14px;background:#991b1b;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;text-align:left;line-height:1.5">
+        Reset completo<br><span style="font-size:11px;opacity:.8;font-weight:400">Azzera tutto incluse posizioni bandiere</span>
+      </button>
+      <button onclick="document.getElementById('reset-modal').style.display='none'" style="padding:12px;background:#f0f4f2;border:none;border-radius:12px;color:#4a5568;font-size:14px;font-weight:500;cursor:pointer;font-family:Outfit,sans-serif">Annulla</button>
+    </div>
+  </div>`;
+}
+
+function resetKeepFlags(){
   localStorage.removeItem(ACTIVE_KEY);
+  location.reload();
+}
+
+function resetFull(){
+  if(!confirm('Sei sicuro? Verranno cancellate anche le posizioni GPS delle bandiere.')) return;
+  localStorage.removeItem(ACTIVE_KEY);
+  localStorage.removeItem('golf_sv_flags');
   location.reload();
 }
 
@@ -1727,6 +1847,7 @@ body{font-family:'Outfit',Arial,sans-serif;background:#fff;color:#1a202c;padding
 // ═══════════════════════════════════════
 try {
   const _loaded=loadState();
+  loadFlagPositions();
   renderList();
   addResetBtn();
   startGPS();
@@ -1839,6 +1960,136 @@ function toggleTTS(){
   }
   speak(ttsEnabled ? 'Voce attivata' : 'Voce disattivata', true);
 }
+
+function addPenalty(holeIdx, strokes, type){
+  const h=S[holeIdx];
+  const cur=calcTotal(holeIdx);
+  h.manualTotal=(cur+strokes);
+  const cv=document.getElementById('cval');if(cv)cv.textContent=h.manualTotal;
+  const pt=document.getElementById('prev-tot');if(pt)pt.textContent=h.manualTotal;
+  const pl=document.getElementById('prev-lordo');if(pl)pl.textContent=h.manualTotal;
+  const st=calcStab(holeIdx);
+  const ps=document.getElementById('prev-stab');
+  if(ps){ps.textContent=st+'pt';ps.className='spiv '+(st>=2?'green':st===1?'gold':'red');}
+  const msg=type==='acqua'?`Penalita acqua. +1 colpo. Totale ${h.manualTotal} colpi.`:`Palla fuori o persa. +2 colpi penalita. Totale ${h.manualTotal} colpi.`;
+  speak(msg,true);
+  saveState();
+}
+
+// ═══════════════════════════════════════
+// MAPPE BUCHE
+// ═══════════════════════════════════════
+// Le mappe mostrano la buca corrente con la sua posizione nell'immagine
+const BASE='https://giovigilante.github.io/caddygio/';
+const HOLE_MAPS = {
+  1: {img:BASE+'buca_01.jpg'},  2: {img:BASE+'buca_02.jpg'},
+  3: {img:BASE+'buca_03.jpg'},  4: {img:BASE+'buca_04.jpg'},
+  5: {img:BASE+'buca_05.jpg'},  6: {img:BASE+'buca_06.jpg'},
+  7: {img:BASE+'buca_07.jpg'},  8: {img:BASE+'buca_08.jpg'},
+  9: {img:BASE+'buca_09.jpg'},  10:{img:BASE+'buca_10.jpg'},
+  11:{img:BASE+'buca_11.jpg'},  12:{img:BASE+'buca_12.jpg'},
+  13:{img:BASE+'buca_13.jpg'},  14:{img:BASE+'buca_14.jpg'},
+  15:{img:BASE+'buca_15.jpg'},  16:{img:BASE+'buca_16.jpg'},
+  17:{img:BASE+'buca_17.jpg'},  18:{img:BASE+'buca_18.jpg'},
+};
+
+function showHoleMap(holeIdx){
+  const h=S[holeIdx];
+  const mapData=HOLE_MAPS[h.n];
+  if(!mapData)return;
+  let el=document.getElementById('hole-map-modal');
+  if(!el){
+    el=document.createElement('div');
+    el.id='hole-map-modal';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Outfit,sans-serif';
+    el.onclick=()=>{el.style.display='none';};
+    document.body.appendChild(el);
+  }
+  const np=netpar(h);
+  const ex=extra(h.si);
+  const shots=h.planShots.filter(s=>!s.isPutt);
+  const firstClub=shots[0]?(gc(shots[0].id)||{n:'Drive'}).n:'Drive';
+  const secondClub=shots[1]?(gc(shots[1].id)||{n:''}).n:'';
+  el.style.display='flex';
+  el.innerHTML=`
+    <div style="color:#fff;font-size:13px;opacity:.6;margin-bottom:8px">${mapData.label} · tocca per chiudere</div>
+    <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:10px 16px;margin-bottom:10px;display:flex;gap:16px;color:#fff">
+      <div style="text-align:center"><div style="font-size:28px;font-weight:700;font-family:DM Mono,monospace">${h.n}</div><div style="font-size:11px;opacity:.65">Buca</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:700">${h.dist}m</div><div style="font-size:11px;opacity:.65">Par ${h.par}</div></div>
+      <div style="text-align:center"><div style="font-size:22px;font-weight:700">SI ${h.si}</div><div style="font-size:11px;opacity:.65">Netto ${np}</div></div>
+      <div style="text-align:center"><div style="font-size:16px;font-weight:700">${firstClub}</div><div style="font-size:11px;opacity:.65">1° colpo</div></div>
+    </div>
+    <img src="${mapData.img}" style="max-width:100%;max-height:60dvh;border-radius:10px;object-fit:contain" onerror="this.parentNode.innerHTML+='<div style=\'color:#f87171;margin-top:10px;font-size:13px\'>Carica le immagini su GitHub per vedere le mappe</div>'">
+    <div style="color:#52b788;font-size:13px;font-weight:600;margin-top:10px">Tocca per chiudere e iniziare la buca</div>
+  `;
+  // Leggi info vocalmente
+  const txt=`Buca ${h.n}. Par ${h.par}. ${h.dist} metri. Indice di difficolta ${h.si}. Par netto ${np} con ${ex} colp${ex>1?'i':' extra'}. Prima mazza: ${firstClub}.${secondClub?' Secondo colpo stimato: '+secondClub+'.':''}`;
+  speak(txt, true);
+}
+
+// ═══════════════════════════════════════
+// MAPPA SVG BUCA
+// ═══════════════════════════════════════
+function updateHoleMap(holeIdx){
+  const h = S[holeIdx];
+  const img = document.getElementById('hole-map-img');
+  const label = document.getElementById('map-hole-label');
+  const parBadge = document.getElementById('map-par-badge');
+  const distBadge = document.getElementById('map-dist-badge2');
+  if(!img) return;
+
+  // Carica immagine buca
+  const BASE = 'https://giovigilante.github.io/caddygio/';
+  img.src = BASE + 'buca_' + String(h.n).padStart(2,'0') + '.jpg';
+  img.style.opacity = '0';
+  document.getElementById('hole-map-svg-overlay').style.opacity = '0';
+
+  if(label) label.textContent = 'Buca ' + h.n;
+  if(parBadge){
+    parBadge.textContent = 'Par ' + h.par;
+    parBadge.style.background = h.par===3?'#1d4ed8':h.par===4?'#1a3d2b':'#92400e';
+  }
+  if(distBadge) distBadge.textContent = h.dist + 'm';
+}
+
+function updateMapGpsPosition(){
+  const h = S[curHole];
+  const g = h.gps;
+  if(!currentPos || !g.teePos) return;
+
+  const posMarker = document.getElementById('map-pos-marker');
+  const distText = document.getElementById('map-dist-text');
+  const legend = document.getElementById('map-gps-legend');
+
+  if(!posMarker) return;
+
+  // Calcola posizione relativa tra tee e bandiera
+  const teePos = g.teePos;
+  const flagPos = g.flagPos;
+
+  if(teePos && flagPos){
+    // Distanza totale tee->bandiera
+    const totalDist = haversine(teePos.lat, teePos.lng, flagPos.lat, flagPos.lng);
+    // Distanza percorsa dal tee
+    const walked = haversine(teePos.lat, teePos.lng, currentPos.lat, currentPos.lng);
+    // Posizione % lungo la buca (0=tee, 1=bandiera)
+    const pct = Math.min(1, walked / totalDist);
+    // Y nella SVG: tee=148, bandiera=12
+    const svgY = 148 - (148-12) * pct;
+    posMarker.setAttribute('cy', svgY.toFixed(1));
+    posMarker.setAttribute('opacity', '0.9');
+    if(legend) legend.style.display = 'flex';
+  } else {
+    posMarker.setAttribute('opacity', '0');
+  }
+
+  // Aggiorna distanza sulla linea
+  if(g.flagPos && distText){
+    const dist = haversine(currentPos.lat, currentPos.lng, g.flagPos.lat, g.flagPos.lng);
+    distText.textContent = dist + 'm';
+  }
+}
+
 </script>
 </body>
 </html>

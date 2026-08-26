@@ -265,6 +265,7 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
   <div class="topbar">
     <button class="back" onclick="goBack()">←</button>
     <div class="ttl"><h1 id="dtitle">Buca 1</h1><p id="dsubt">Par 4 · 374m · SI 3</p></div>
+    <button id="tts-toggle" onclick="toggleTTS()" title="Voce attiva" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.13);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🔊</button>
     <div id="dpill" class="mode-pill" onclick="toggleDetailMode()">📋 Piano</div>
   </div>
 
@@ -334,6 +335,9 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
       <div class="gps-actions">
         <button class="gps-btn primary" onclick="markShot()">
           <span class="gbi">📍</span>Segna colpo
+        </button>
+        <button class="gps-btn secondary" onclick="speakGpsDistance()">
+          <span class="gbi">🔊</span>Leggi distanza
         </button>
         <button class="gps-btn secondary" onclick="markFlag()">
           <span class="gbi">🚩</span>Segna bandiera
@@ -411,6 +415,11 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
 </div>
 
 <script>
+let ttsEnabled = true;
+let ttsVoice = null;
+let ttsRate = 0.95;
+let ttsPitch = 1.0;
+
 // ═══════════════════════════════════════
 // MAZZE
 // ═══════════════════════════════════════
@@ -771,6 +780,7 @@ function markShot(){
   updateGpsDistances();
   // Vibra se disponibile
   if(navigator.vibrate)navigator.vibrate(80);
+  speakShotSaved(shotNum, dist);
   saveState();
 }
 
@@ -1079,6 +1089,7 @@ function toggleDetailMode(){
 
 function openHole(i){
   curHole=i;
+  setTimeout(()=>speakHoleInfo(i), 600);
   document.getElementById('scr-list').classList.remove('active');
   document.getElementById('scr-hole').classList.add('active');
   document.getElementById('dtitle').textContent=`Buca ${S[i].n}`;
@@ -1158,6 +1169,7 @@ function savePlan(){
 function saveHole(){
   S[curHole].saved=true;
   saveState();
+  speakHoleSaved();
   const btn=document.getElementById('savebtn');
   if(btn){btn.textContent='✓ Salvato!';btn.style.background='var(--gm)';
     setTimeout(()=>{if(btn){btn.textContent='✓ Salva buca';btn.style.background='';}},1400);}
@@ -1493,12 +1505,104 @@ function addResetBtn() {
   const list=document.querySelector('.hole-list');
   if(!list) return;
   const wrap=document.createElement('div');
-  wrap.style.cssText='text-align:center;padding:16px 10px 8px;display:flex;gap:10px;justify-content:center';
+  wrap.style.cssText='text-align:center;padding:16px 10px 8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap';
   wrap.innerHTML=`
-    <button onclick="openPlansModal()" style="background:#1a3d2b;border:none;border-radius:20px;padding:11px 20px;font-size:13px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600;display:flex;align-items:center;gap:7px">📚 Strategie</button>
+    <button onclick="openPlansModal()" style="background:#1a3d2b;border:none;border-radius:20px;padding:11px 20px;font-size:13px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">📚 Strategie</button>
     <button onclick="printPDF()" style="background:#fff;border:1.5px solid #1a3d2b;border-radius:20px;padding:11px 18px;font-size:13px;color:#1a3d2b;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🖨️ PDF</button>
+    <button onclick="openVoiceTest()" style="background:#185FA5;border:none;border-radius:20px;padding:11px 18px;font-size:13px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🔊 Test voce</button>
   `;
   list.appendChild(wrap);
+}
+
+// ═══════════════════════════════════════
+// PANNELLO TEST VOCE
+// ═══════════════════════════════════════
+function openVoiceTest(){
+  let el=document.getElementById('voice-modal');
+  if(!el){
+    el=document.createElement('div');
+    el.id='voice-modal';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:flex;align-items:flex-end;font-family:Outfit,sans-serif';
+    el.onclick=e=>{if(e.target===el)el.style.display='none';};
+    document.body.appendChild(el);
+  }
+  renderVoiceTest(el);
+  el.style.display='flex';
+}
+
+function renderVoiceTest(el){
+  const voices=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+  const italianVoices=voices.filter(v=>v.lang.startsWith('it'));
+  const otherVoices=voices.filter(v=>v.lang.startsWith('en'));
+  const allVoices=[...italianVoices,...otherVoices].slice(0,20);
+  let voiceOptions='<option value="">-- Voce automatica --</option>';
+  allVoices.forEach((v,i)=>{
+    const sel=(ttsVoice&&ttsVoice.name===v.name)?'selected':'';
+    voiceOptions+=`<option value="${i}" ${sel}>${v.name} (${v.lang})</option>`;
+  });
+  const onColor=ttsEnabled?'#f0fdf4':'#fee2e2';
+  const onTextColor=ttsEnabled?'#1a3d2b':'#991b1b';
+  const onBtnColor=ttsEnabled?'#1a3d2b':'#991b1b';
+  const onLabel=ttsEnabled?'Disattiva':'Attiva';
+  const onStatus=ttsEnabled?'Voce attiva':'Voce disattivata';
+  el.innerHTML=`<div style="background:#fff;border-radius:22px 22px 0 0;width:100%;max-height:85dvh;overflow-y:auto;padding-bottom:20px">
+    <div style="width:38px;height:4px;background:#dde2e8;border-radius:2px;margin:12px auto 8px"></div>
+    <div style="padding:4px 16px 14px;border-bottom:1px solid #f0f4f2;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:16px;font-weight:700;color:#1a3d2b">🔊 Test voce Meta Glasses</div>
+      <button onclick="document.getElementById('voice-modal').style.display='none'" style="background:#f0f4f2;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:#4a5568;cursor:pointer;font-family:Outfit,sans-serif">Chiudi</button>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="background:${onColor};border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:600;color:${onTextColor}">${ttsEnabled?'🔊':'🔇'} ${onStatus}</span>
+        <button onclick="toggleTTS();renderVoiceTest(document.getElementById('voice-modal'))" style="background:${onBtnColor};border:none;border-radius:10px;padding:8px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif">${onLabel}</button>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Seleziona voce</div>
+        <select id="voice-select" onchange="setVoice(this.value)" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #dde2e8;font-size:13px;font-family:Outfit,sans-serif;background:#fff;color:#1a202c">
+          ${voiceOptions}
+        </select>
+        <div style="font-size:11px;color:#9aa5b4;margin-top:5px">Voci italiane prima. Se lista vuota, riapri tra 10 secondi.</div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Velocita: <span id="rate-val">${ttsRate}</span></div>
+        <input type="range" id="rate-slider" min="0.5" max="1.5" step="0.05" value="${ttsRate}" oninput="document.getElementById('rate-val').textContent=parseFloat(this.value).toFixed(2);ttsRate=parseFloat(this.value)" style="width:100%;accent-color:#1a3d2b">
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px">Tono: <span id="pitch-val">${ttsPitch}</span></div>
+        <input type="range" id="pitch-slider" min="0.5" max="2.0" step="0.1" value="${ttsPitch}" oninput="document.getElementById('pitch-val').textContent=parseFloat(this.value).toFixed(1);ttsPitch=parseFloat(this.value)" style="width:100%;accent-color:#1a3d2b">
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px">Prova le frasi</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button onclick="testSpeak('Buca 1. Par 4. 374 metri. Par netto 6. Prima mazza: Drive.')" style="padding:12px;background:#f0f4f2;border:none;border-radius:10px;font-size:13px;font-weight:500;color:#1a202c;cursor:pointer;font-family:Outfit,sans-serif;text-align:left">Apertura buca</button>
+        <button onclick="testSpeak('Colpo 1 segnato. Percorsi circa 220 metri. Distanza dalla bandiera 154 metri. Prossima mazza consigliata: Ferro 7.')" style="padding:12px;background:#f0f4f2;border:none;border-radius:10px;font-size:13px;font-weight:500;color:#1a202c;cursor:pointer;font-family:Outfit,sans-serif;text-align:left">Colpo segnato GPS</button>
+        <button onclick="testSpeak('Distanza dalla bandiera: 85 metri. Consiglio 56 gradi.')" style="padding:12px;background:#f0f4f2;border:none;border-radius:10px;font-size:13px;font-weight:500;color:#1a202c;cursor:pointer;font-family:Outfit,sans-serif;text-align:left">Distanza dalla bandiera</button>
+        <button onclick="testSpeak('Buca 5 salvata. 6 colpi. 2 punti Stableford.')" style="padding:12px;background:#f0f4f2;border:none;border-radius:10px;font-size:13px;font-weight:500;color:#1a202c;cursor:pointer;font-family:Outfit,sans-serif;text-align:left">Buca salvata</button>
+        <button onclick="window.speechSynthesis&&window.speechSynthesis.cancel()" style="padding:12px;background:#fee2e2;border:none;border-radius:10px;font-size:13px;font-weight:600;color:#991b1b;cursor:pointer;font-family:Outfit,sans-serif">Ferma audio</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function setVoice(idx){
+  const voices=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+  const italianVoices=voices.filter(v=>v.lang.startsWith('it'));
+  const otherVoices=voices.filter(v=>v.lang.startsWith('en'));
+  const allVoices=[...italianVoices,...otherVoices].slice(0,20);
+  if(idx===''||idx===null){ttsVoice=null;return;}
+  ttsVoice=allVoices[parseInt(idx)]||null;
+  testSpeak('Voce selezionata. Prova in corso.');
+}
+
+function testSpeak(txt){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(txt);
+  if(ttsVoice)utt.voice=ttsVoice;
+  utt.lang='it-IT';
+  utt.rate=ttsRate||0.95;
+  utt.pitch=ttsPitch||1.0;
+  utt.volume=1.0;
+  window.speechSynthesis.speak(utt);
 }
 // ═══════════════════════════════════════
 // STAMPA PDF — 18 caselle A4
@@ -1621,16 +1725,25 @@ body{font-family:'Outfit',Arial,sans-serif;background:#fff;color:#1a202c;padding
 // ═══════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════
-const _loaded=loadState();
-renderList();
-addResetBtn();
-startGPS();
-if(_loaded){
-  const b=document.createElement('div');
-  b.style.cssText='position:fixed;top:0;left:0;right:0;background:#2d6a4f;color:#fff;text-align:center;padding:11px;font-size:13px;font-weight:600;z-index:999;font-family:Outfit,sans-serif';
-  b.textContent='Piano caricato dalla memoria';
-  document.body.appendChild(b);
-  setTimeout(()=>b.remove(),2500);
+try {
+  const _loaded=loadState();
+  renderList();
+  addResetBtn();
+  startGPS();
+  initTTS();
+  if(_loaded){
+    const b=document.createElement('div');
+    b.style.cssText='position:fixed;top:0;left:0;right:0;background:#2d6a4f;color:#fff;text-align:center;padding:11px;font-size:13px;font-weight:600;z-index:999;font-family:Outfit,sans-serif';
+    b.textContent='Piano caricato dalla memoria';
+    document.body.appendChild(b);
+    setTimeout(()=>b.remove(),2500);
+  }
+} catch(err) {
+  // Mostra l'errore reale a schermo per debug
+  const errDiv=document.createElement('div');
+  errDiv.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:#fee2e2;color:#991b1b;padding:20px;font-size:14px;font-family:monospace;z-index:9999;overflow:auto;white-space:pre-wrap';
+  errDiv.textContent='ERRORE APP:\n\n'+err.message+'\n\nStack:\n'+err.stack;
+  document.body.appendChild(errDiv);
 }
 
 // Aggiorna distanze GPS ogni 3 secondi se nella schermata GPS
@@ -1639,6 +1752,93 @@ setInterval(()=>{
     updateGpsDistances();
   }
 },3000);
+
+// ═══════════════════════════════════════
+// SINTESI VOCALE — Meta Glasses / Auricolari
+// ═══════════════════════════════════════
+
+function initTTS(){
+  if(!window.speechSynthesis) return;
+  // Carica voci disponibili
+  function loadVoices(){
+    const voices = window.speechSynthesis.getVoices();
+    // Preferisci voce italiana
+    ttsVoice = voices.find(v => v.lang.startsWith('it')) ||
+               voices.find(v => v.lang.startsWith('en')) ||
+               voices[0] || null;
+  }
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+function speak(text, priority){
+  if(!ttsEnabled || !window.speechSynthesis) return;
+  if(priority) window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  if(ttsVoice) utt.voice = ttsVoice;
+  utt.lang = 'it-IT';
+  utt.rate = ttsRate||0.95;
+  utt.pitch = ttsPitch||1.0;
+  utt.volume = 1.0;
+  window.speechSynthesis.speak(utt);
+}
+
+function speakHoleInfo(holeIdx){
+  const h = S[holeIdx];
+  const np = netpar(h);
+  const ex = extra(h.si);
+  const shots = h.planShots.filter(s=>!s.isPutt);
+  const firstClub = shots[0] ? (gc(shots[0].id)||{n:'Drive'}).n : 'Drive';
+  const txt = `Buca ${h.n}. Par ${h.par}. ${h.dist} metri. Par netto ${np}. Prima mazza: ${firstClub}.`;
+  speak(txt, true);
+}
+
+function speakGpsDistance(){
+  const h = S[curHole];
+  const g = h.gps;
+  if(g.flagPos && currentPos){
+    const d = haversine(currentPos.lat, currentPos.lng, g.flagPos.lat, g.flagPos.lng);
+    const cl = suggestClub(d);
+    const txt = cl
+      ? `Distanza dalla bandiera: ${d} metri. Consiglio ${cl.n}.`
+      : `Distanza dalla bandiera: ${d} metri.`;
+    speak(txt, true);
+  } else {
+    speak('Bandiera non ancora segnata.', true);
+  }
+}
+
+function speakShotSaved(shotNum, dist){
+  const h = S[curHole];
+  const g = h.gps;
+  let flagDist = '';
+  if(g.flagPos && currentPos){
+    const d = haversine(currentPos.lat, currentPos.lng, g.flagPos.lat, g.flagPos.lng);
+    const cl = suggestClub(d);
+    flagDist = cl
+      ? ` Distanza dalla bandiera ${d} metri. Prossima mazza consigliata: ${cl.n}.`
+      : ` Distanza dalla bandiera ${d} metri.`;
+  }
+  speak(`Colpo ${shotNum} segnato. Percorsi circa ${dist} metri.${flagDist}`, true);
+}
+
+function speakHoleSaved(){
+  const h = S[curHole];
+  const tot = calcTotal(curHole);
+  const stab = calcStab(curHole);
+  const stabTxt = stab >= 2 ? `${stab} punti Stableford` : stab === 1 ? '1 punto Stableford' : 'zero punti';
+  speak(`Buca ${h.n} salvata. ${tot} colpi. ${stabTxt}.`, true);
+}
+
+function toggleTTS(){
+  ttsEnabled = !ttsEnabled;
+  const btn = document.getElementById('tts-toggle');
+  if(btn){
+    btn.textContent = ttsEnabled ? '🔊' : '🔇';
+    btn.title = ttsEnabled ? 'Voce attiva' : 'Voce disattivata';
+  }
+  speak(ttsEnabled ? 'Voce attivata' : 'Voce disattivata', true);
+}
 </script>
 </body>
 </html>

@@ -326,63 +326,33 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
       </div>
       <!-- GRIGLIA DISTANZE -->
       
-      <!-- MAPPA BUCA SVG -->
-      <div id="hole-svg-map" style="position:relative;width:100%;margin-bottom:10px;border-radius:12px;overflow:hidden;background:#1a4a28">
-        <div id="hole-map-img-wrap" style="position:relative;width:100%;min-height:200px">
-          <img id="hole-map-img" src="" alt="Mappa buca" 
-            style="width:100%;display:block;opacity:0;transition:opacity .3s"
-            onload="this.style.opacity=1;document.getElementById('hole-map-svg-overlay').style.opacity=1"
-            onerror="document.getElementById('hole-map-fallback').style.display='flex'">
-          <!-- Fallback se immagine non carica -->
-          <div id="hole-map-fallback" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:#1a3d2b;color:rgba(255,255,255,.5);font-size:13px;font-family:Outfit,sans-serif">
-            <div style="font-size:32px">🗺️</div>
-            <div>Carica le immagini su GitHub</div>
-          </div>
-          <!-- SVG overlay con linea e marker -->
-          <svg id="hole-map-svg-overlay" viewBox="0 0 100 160" preserveAspectRatio="none"
-            style="position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s">
-            <!-- Linea dal tee alla bandiera -->
-            <line id="map-line" x1="50" y1="148" x2="50" y2="12" 
-              stroke="white" stroke-width="0.8" stroke-dasharray="3,2" opacity=".85"/>
-            <!-- Badge distanza intermedia -->
-            <rect id="map-dist-badge" x="54" y="72" width="20" height="10" rx="5" fill="#000" opacity=".65"/>
-            <text id="map-dist-text" x="64" y="80" text-anchor="middle" font-size="6" fill="white" font-family="sans-serif" font-weight="bold">–m</text>
-            <!-- Marker bandiera (green - in alto) -->
-            <circle cx="50" cy="12" r="5" fill="#e53e3e" opacity=".9"/>
-            <text x="50" y="15.5" text-anchor="middle" font-size="5" fill="white">⛳</text>
-            <!-- Marker tee (in basso) -->
-            <circle cx="50" cy="148" r="5" fill="#f4d03f" opacity=".95"/>
-            <text x="50" y="151" text-anchor="middle" font-size="4.5" fill="#1a3d2b" font-weight="bold">T</text>
-            <!-- Marker posizione corrente (solo quando GPS attivo) -->
-            <circle id="map-pos-marker" cx="50" cy="148" r="4" fill="#f4a261" opacity="0">
-              <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite"/>
-            </circle>
-          </svg>
-        </div>
-        <!-- Info buca overlay in alto -->
-        <div style="position:absolute;top:0;left:0;right:0;background:linear-gradient(rgba(0,0,0,.75),transparent);padding:8px 10px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div style="color:#fff;font-size:14px;font-weight:700;font-family:Outfit,sans-serif" id="map-hole-label">Buca 1</div>
-            <div style="display:flex;gap:6px">
-              <span id="map-par-badge" style="background:#1a3d2b;color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;font-family:Outfit,sans-serif">Par 4</span>
-              <span id="map-dist-badge2" style="background:rgba(255,255,255,.15);color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-family:Outfit,sans-serif">374m</span>
-            </div>
+      <!-- MAPPA BUCA -->
+      <div id="hole-svg-map" style="position:relative;width:100%;margin-bottom:10px;border-radius:12px;overflow:hidden;background:#1a4a28;min-height:220px">
+        <img id="hole-map-img" src="" alt="Mappa buca"
+          style="width:100%;display:block;min-height:220px;object-fit:cover">
+        <div style="position:absolute;top:0;left:0;right:0;background:linear-gradient(rgba(0,0,0,.7),transparent);padding:8px 10px;display:flex;align-items:center;justify-content:space-between">
+          <div style="color:#fff;font-size:15px;font-weight:700;font-family:Outfit,sans-serif" id="map-hole-label">Buca 1</div>
+          <div style="display:flex;gap:6px">
+            <span id="map-par-badge" style="background:#1a3d2b;color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;font-family:Outfit,sans-serif">Par 4</span>
+            <span id="map-dist-badge2" style="background:rgba(255,255,255,.2);color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-family:Outfit,sans-serif">374m</span>
           </div>
         </div>
-        <!-- Legenda in basso -->
-        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:6px 10px">
-          <div style="display:flex;gap:12px;align-items:center">
-            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#fff;font-family:Outfit,sans-serif">
-              <div style="width:8px;height:8px;border-radius:50%;background:#e53e3e"></div>Green
-            </div>
-            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#fff;font-family:Outfit,sans-serif">
-              <div style="width:8px;height:8px;border-radius:50%;background:#f4d03f"></div>Tee
-            </div>
-            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:#fff;font-family:Outfit,sans-serif" id="map-gps-legend" style="display:none">
-              <div style="width:8px;height:8px;border-radius:50%;background:#f4a261"></div>Tu
-            </div>
-          </div>
+        <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.65));padding:8px 10px;display:flex;gap:12px;align-items:center">
+          <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#fff;font-family:Outfit,sans-serif"><div style="width:9px;height:9px;border-radius:50%;background:#e53e3e"></div>Green</div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#fff;font-family:Outfit,sans-serif"><div style="width:9px;height:9px;border-radius:50%;background:#f4d03f"></div>Tee Giallo</div>
+          <div id="map-gps-legend" style="display:none;align-items:center;gap:4px;font-size:11px;color:#fff;font-family:Outfit,sans-serif"><div style="width:9px;height:9px;border-radius:50%;background:#f4a261"></div>Tu</div>
         </div>
+        <svg id="hole-map-svg-overlay" viewBox="0 0 100 160" preserveAspectRatio="none"
+          style="position:absolute;inset:0;width:100%;height:100%">
+          <line x1="50" y1="148" x2="50" y2="12" stroke="white" stroke-width="0.8" stroke-dasharray="3,2" opacity=".85"/>
+          <rect id="map-dist-badge" x="54" y="72" width="22" height="11" rx="5" fill="#000" opacity=".65"/>
+          <text id="map-dist-text" x="65" y="80.5" text-anchor="middle" font-size="6" fill="white" font-family="sans-serif" font-weight="bold">–m</text>
+          <circle cx="50" cy="12" r="5" fill="#e53e3e" opacity=".9"/>
+          <circle cx="50" cy="148" r="5" fill="#f4d03f" opacity=".95"/>
+          <circle id="map-pos-marker" cx="50" cy="148" r="4" fill="#f4a261" opacity="0">
+            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
       </div>
 
 <div class="dist-grid">
@@ -2054,11 +2024,10 @@ function updateHoleMap(holeIdx){
   const distBadge = document.getElementById('map-dist-badge2');
   if(!img) return;
 
-  // Carica immagine buca
+  // Carica immagine con cache busting
   const BASE = 'https://giovigilante.github.io/caddygio/';
-  img.src = BASE + 'buca_' + String(h.n).padStart(2,'0') + '.jpg';
-  img.style.opacity = '0';
-  document.getElementById('hole-map-svg-overlay').style.opacity = '0';
+  const ts = '?v=2';
+  img.src = BASE + 'buca_' + String(h.n).padStart(2,'0') + '.jpg' + ts;
 
   if(label) label.textContent = 'Buca ' + h.n;
   if(parBadge){

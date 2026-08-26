@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a3d2b">
+<title>⛳ San Valentino · Caddy GPS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+:root{
+  --gd:#1a3d2b;--gm:#2d6a4f;--gl:#52b788;--gp:#d8f3dc;
+  --gold:#f4a261;--goldd:#e76f51;--red:#e53e3e;--blue:#3182ce;
+  --sky:#e8f4fd;--w:#fff;--g50:#f8fafb;--g100:#f0f4f2;
+  --g200:#dde2e8;--g400:#9aa5b4;--g600:#4a5568;--g800:#1a202c;
+  --r:14px;--rs:10px;--sh:0 2px 12px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);color:var(--g800);overscroll-behavior:none}
+.screen{display:none;flex-direction:column;height:100dvh;overflow:hidden}
+.screen.active{display:flex}
+
+/* TOP BAR */
+.topbar{background:var(--gd);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:9px;flex-shrink:0}
+.topbar .back{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.13);border:none;color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.topbar .ttl{flex:1}.topbar h1{font-size:15px;font-weight:600;line-height:1.2}.topbar p{font-size:11px;opacity:.7;margin-top:1px}
+.mode-pill{border-radius:20px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.15);white-space:nowrap}
+.mode-pill.play{background:var(--gold);border-color:transparent}
+
+/* TOTALE BAR */
+.totbar{background:var(--gd);color:#fff;padding:8px 13px;display:flex;gap:8px;flex-shrink:0}
+.ti{flex:1;text-align:center}.ti .tl{font-size:9px;opacity:.65;text-transform:uppercase;letter-spacing:.5px}
+.ti .tv{font-size:16px;font-weight:700;font-family:'DM Mono',monospace}
+.ti .tv.gold{color:var(--gold)}.ti .tv.green{color:var(--gl)}
+
+/* LISTA */
+.hole-list{flex:1;overflow-y:auto;padding:7px 10px 20px}
+.half-lbl{font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:1px;padding:9px 3px 4px}
+.hcard{background:#fff;border-radius:var(--rs);margin-bottom:6px;border:1.5px solid var(--g200);display:flex;align-items:stretch;cursor:pointer;transition:transform .1s}
+.hcard:active{transform:scale(.982)}
+.hcard.planned{border-color:#a7c9b8}.hcard.saved{border-color:var(--gl);background:#f0fdf4}
+.hcnum{background:var(--gd);color:#fff;width:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border-radius:8px 0 0 8px}
+.hcnum .hn{font-size:18px;font-weight:700;line-height:1}.hcnum .hp{font-size:9px;opacity:.7;margin-top:2px}
+.hcard.planned .hcnum{background:var(--gm)}.hcard.saved .hcnum{background:#22543d}
+.hcinfo{flex:1;padding:7px 9px}
+.hctop{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.pbadge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.pbadge.p3{background:#dbeafe;color:#1d4ed8}.pbadge.p4{background:var(--gp);color:var(--gd)}.pbadge.p5{background:#fef3c7;color:#92400e}
+.sibadge{font-size:10px;color:var(--g400)}
+.hcclubs{font-size:10px;color:var(--g600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctag{display:inline-block;background:var(--g100);border-radius:3px;padding:1px 4px;margin-right:2px;font-size:9px}
+.hcscore{padding:7px 9px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:54px;gap:2px}
+.slordo{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;line-height:1}
+.slordo.pend{color:var(--g400);font-size:12px}
+.sstab{font-size:10px;font-weight:600;border-radius:20px;padding:2px 6px}
+.sstab.s2{background:var(--gp);color:var(--gd)}.sstab.s1{background:#fef9c3;color:#713f12}
+.sstab.s0{background:#fee2e2;color:#991b1b}.sstab.pend{background:var(--g100);color:var(--g400)}
+.plan-status{font-size:9px;color:var(--gm);font-weight:600;margin-top:1px}
+
+/* ═══ GPS SCREEN ═══ */
+.gps-screen{flex:1;overflow-y:auto;padding-bottom:100px}
+
+/* GPS HERO - radar/compass look */
+.gps-hero{
+  background:linear-gradient(160deg,#0d2b1e,#1a3d2b);
+  padding:16px 14px 14px;color:#fff;flex-shrink:0;
+}
+.gps-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.gps-hole-badge{font-size:28px;font-weight:700;font-family:'DM Mono',monospace;line-height:1}
+.gps-hole-info{text-align:right}
+.gps-hole-info h3{font-size:14px;font-weight:600}
+.gps-hole-info p{font-size:11px;opacity:.65;margin-top:1px}
+
+/* GPS STATUS */
+.gps-status-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,0,0,.25);border-radius:10px;margin-bottom:12px}
+.gps-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;animation:pulse 2s infinite}
+.gps-dot.green{background:var(--gl)}.gps-dot.amber{background:var(--gold)}.gps-dot.red{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.gps-status-text{flex:1;font-size:12px}
+.gps-acc{font-size:11px;opacity:.6;margin-left:auto}
+
+/* DISTANZA PRINCIPALE */
+.dist-main-card{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:16px;padding:16px;margin-bottom:10px;
+}
+.dist-main-label{font-size:11px;opacity:.65;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.dist-main-value{font-size:52px;font-weight:700;font-family:'DM Mono',monospace;line-height:1;letter-spacing:-1px}
+.dist-main-value.far{color:#fff}.dist-main-value.mid{color:var(--gold)}.dist-main-value.near{color:var(--gl)}
+.dist-main-unit{font-size:16px;font-weight:400;opacity:.7;margin-left:4px}
+.dist-main-sub{font-size:12px;opacity:.6;margin-top:4px}
+.dist-suggestion{margin-top:8px;background:rgba(255,255,255,.12);border-radius:10px;padding:9px 11px}
+.dist-sug-label{font-size:10px;opacity:.65;margin-bottom:3px}
+.dist-sug-club{font-size:16px;font-weight:700}
+.dist-sug-why{font-size:11px;opacity:.7;margin-top:1px}
+
+/* DISTANZE SECONDARIE */
+.dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.dist-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:11px 12px}
+.dist-card-label{font-size:10px;opacity:.6;margin-bottom:3px}
+.dist-card-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace}
+.dist-card-sub{font-size:10px;opacity:.55;margin-top:2px}
+
+/* AZIONI GPS */
+.gps-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gps-btn{padding:13px 10px;border-radius:12px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2}
+.gps-btn .gbi{font-size:20px}
+.gps-btn.primary{background:var(--gl);color:#fff}
+.gps-btn.primary:active{background:#3d9970}
+.gps-btn.secondary{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.gps-btn.secondary:active{background:rgba(255,255,255,.18)}
+.gps-btn.danger{background:rgba(228,86,86,.25);color:#fc8181;border:1px solid rgba(228,86,86,.3)}
+
+/* MAPPA COLPI GPS */
+.shot-map{padding:14px 13px 0}
+.sec-title{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.sec-title a{font-size:11px;color:var(--gm);font-weight:600;text-transform:none;letter-spacing:0;cursor:pointer}
+
+/* Shot tracker list */
+.shot-track{background:#fff;border-radius:var(--rs);border:1.5px solid var(--g200);overflow:hidden;margin-bottom:8px}
+.st-header{display:flex;align-items:center;padding:10px 12px;gap:10px;border-bottom:1px solid var(--g100)}
+.st-num{width:28px;height:28px;border-radius:50%;background:var(--gd);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.st-num.active{background:var(--goldd);animation:pulse 1.5s infinite}
+.st-num.done{background:var(--gm)}
+.st-info{flex:1}
+.st-club{font-size:14px;font-weight:600}
+.st-dist{font-size:11px;color:var(--g400);margin-top:1px}
+.st-gps{text-align:right}
+.st-gps-val{font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--gm)}
+.st-gps-val.active{color:var(--goldd)}
+.st-gps-label{font-size:9px;color:var(--g400);margin-top:1px}
+.st-actions{display:flex;border-top:1px solid var(--g100)}
+.sta-btn{flex:1;padding:9px;border:none;background:transparent;font-size:11px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;color:var(--gm)}
+.sta-btn:active{background:var(--gp)}
+.sta-btn.danger{color:var(--red)}
+.sta-btn+.sta-btn{border-left:1px solid var(--g100)}
+
+/* COMPASS WIDGET */
+.compass-wrap{padding:14px 13px 0}
+.compass-card{background:#fff;border-radius:var(--r);border:1.5px solid var(--g200);padding:14px;text-align:center}
+.compass-title{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.compass-svg-wrap{position:relative;width:160px;height:160px;margin:0 auto 12px}
+#compass-svg{width:160px;height:160px}
+.compass-info{display:flex;justify-content:center;gap:20px}
+.ci-item{text-align:center}
+.ci-label{font-size:10px;color:var(--g400)}
+.ci-value{font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--g800)}
+
+/* DETAIL SCREEN (piano/gara) */
+.hdetail{flex:1;overflow-y:auto;padding-bottom:90px}
+.hhero{background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;padding:13px 14px}
+.hhero-top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.hbignum{font-size:44px;font-weight:700;line-height:1;font-family:'DM Mono',monospace;opacity:.9}
+.hinfo h2{font-size:16px;font-weight:600}.hinfo p{font-size:11px;opacity:.7;margin-top:1px}
+.hbadges{display:flex;gap:6px;flex-wrap:wrap}
+.hb{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 9px;font-size:11px;font-weight:500}
+.hb.gold{background:var(--gold);border-color:transparent}.hb.sky{background:rgba(255,255,255,.9);color:var(--gd);font-weight:700}
+
+.mode-toggle{display:flex;margin:11px 12px 0;background:var(--g100);border-radius:var(--rs);padding:3px;flex-shrink:0}
+.mt-btn{flex:1;padding:9px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;color:var(--g400);background:transparent;transition:.15s}
+.mt-btn.active{background:#fff;color:var(--gd);box-shadow:var(--sh)}
+
+.sec{padding:11px 12px 0}
+.sectitle{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.stbadge{font-size:10px;background:var(--gp);color:var(--gm);border-radius:20px;padding:2px 7px;text-transform:none;letter-spacing:0;font-weight:600}
+.stbadge.play{background:#fef3c7;color:#92400e}
+
+.srow{background:#fff;border-radius:var(--rs);margin-bottom:6px;border:1.5px solid var(--g200);overflow:hidden}
+.srow.changed{border-color:var(--gold)}.srow.active-shot{border-color:var(--goldd);border-width:2px}
+.sheader{display:flex;align-items:center;padding:9px 11px;gap:9px}
+.snum{width:26px;height:26px;border-radius:50%;background:var(--gd);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.snum.putt{background:var(--g400);font-size:10px}.snum.changed{background:var(--goldd)}.snum.curr{background:var(--goldd);animation:pulse 1.5s infinite}
+.smain{flex:1}.scname{font-size:14px;font-weight:600}.scdist{font-size:11px;color:var(--g400);margin-top:1px}
+.scdist span{color:var(--g600);font-weight:500}
+.gps-dist-badge{background:var(--gp);color:var(--gm);border-radius:8px;padding:3px 8px;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0}
+.gps-dist-badge.live{background:#fef3c7;color:#92400e;animation:pulse 2s infinite}
+.pcircle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.phi{background:var(--gp);color:var(--gd)}.pmi{background:#fef9c3;color:#713f12}.plo{background:#fee2e2;color:#991b1b}
+
+.chg-btn{width:100%;padding:8px;background:var(--g50);border:none;border-top:1px solid var(--g200);font-size:12px;font-weight:500;color:var(--gm);cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px}
+.chg-btn:active{background:var(--gp)}.chg-btn.play-mode{color:var(--goldd)}
+.add-btn{width:100%;padding:10px;background:#fff;border:2px dashed var(--g200);border-radius:var(--rs);font-size:12px;font-weight:500;color:var(--g400);cursor:pointer;font-family:'Outfit',sans-serif;margin-bottom:6px;display:flex;align-items:center;justify-content:center;gap:5px}
+.add-btn:active{background:var(--gp);border-color:var(--gl);color:var(--gd)}
+
+.diff-row{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:var(--rs);padding:9px 11px;margin-bottom:6px;font-size:11px;color:#92400e}
+.diff-row strong{font-weight:600;display:block;margin-bottom:2px}
+
+.ccard{background:#fff;border-radius:var(--r);border:1.5px solid var(--g200);padding:12px;margin:11px 12px 0}
+.ctitle{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.crow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.clabel{font-size:14px;font-weight:500}
+.ccontrols{display:flex;align-items:center}
+.cbtn{width:46px;height:46px;border:1.5px solid var(--g200);background:#fff;font-size:22px;font-weight:300;cursor:pointer;color:var(--g800);display:flex;align-items:center;justify-content:center}
+.cbtn:first-child{border-radius:12px 0 0 12px}.cbtn:last-child{border-radius:0 12px 12px 0}
+.cbtn:active{background:var(--gp)}.cbtn.minus:active{background:#fee2e2}
+.cval{min-width:48px;height:46px;border-top:1.5px solid var(--g200);border-bottom:1.5px solid var(--g200);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;font-family:'DM Mono',monospace}
+.spreview{background:var(--g50);border-radius:var(--rs);padding:10px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.spi{text-align:center}.spil{font-size:10px;color:var(--g400);margin-bottom:2px}
+.spiv{font-size:16px;font-weight:700;font-family:'DM Mono',monospace}
+.spiv.green{color:var(--gm)}.spiv.gold{color:var(--goldd)}.spiv.red{color:var(--red)}
+
+.nsec{padding:11px 12px}
+.nchips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.nchip{padding:6px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1.5px solid var(--g200);background:#fff;cursor:pointer;transition:.1s}
+.nchip.active{background:var(--gd);color:#fff;border-color:var(--gd)}
+.nchip:active{transform:scale(.95)}
+
+.navarr{display:flex;gap:7px;padding:11px 12px 0}
+.narr{flex:1;padding:10px;border:1.5px solid var(--g200);border-radius:var(--rs);background:#fff;font-size:12px;font-weight:500;cursor:pointer;color:var(--g600);font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px}
+.narr:active{background:var(--gp)}.narr.next{background:var(--gd);color:#fff;border-color:transparent}
+.narr.next:active{background:var(--gm)}
+
+.savebar{position:fixed;bottom:0;left:0;right:0;padding:10px 13px;background:#fff;border-top:1px solid var(--g200);box-shadow:0 -4px 20px rgba(0,0,0,.07);display:flex;gap:7px}
+.sbtn{flex:1;padding:13px;border-radius:var(--r);border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px}
+.sbtn.primary{background:var(--gd);color:#fff}.sbtn.primary:active{background:var(--gm)}
+.sbtn.secondary{background:var(--g100);color:var(--g600);flex:0 0 auto;padding:13px 16px;font-size:12px}
+.sbtn.secondary:active{background:var(--g200)}
+.sbtn.gps-btn-main{background:linear-gradient(135deg,#0d7a4e,#1a5c38);color:#fff}
+.sbtn.gps-btn-main:active{background:var(--gm)}
+
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.52);display:flex;align-items:flex-end;z-index:100;opacity:0;pointer-events:none;transition:opacity .2s}
+.moverlay.open{opacity:1;pointer-events:all}
+.msheet{background:#fff;border-radius:22px 22px 0 0;width:100%;max-height:82dvh;overflow-y:auto;transform:translateY(100%);transition:transform .25s ease;padding-bottom:20px}
+.moverlay.open .msheet{transform:translateY(0)}
+.mhandle{width:38px;height:4px;background:var(--g200);border-radius:2px;margin:11px auto 7px}
+.mtitle{font-size:16px;font-weight:600;padding:3px 14px 4px}
+.msubt{font-size:12px;color:var(--g400);padding:0 14px 9px;margin-top:-2px}
+.cgtitle{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;padding:7px 14px 3px}
+.copt{display:flex;align-items:center;padding:11px 14px;gap:10px;cursor:pointer;border-bottom:1px solid var(--g100)}
+.copt:active{background:var(--gp)}.copt.active{background:var(--gp)}
+.cicon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.ci-D{background:#1a1a2e;color:#a29bfe}.ci-L{background:#fee2e2;color:#991b1b}
+.ci-H{background:#fce7f3;color:#9d174d}.ci-F{background:var(--gp);color:var(--gd)}
+.ci-W{background:#fef3c7;color:#92400e}.ci-P{background:var(--g100);color:var(--g600)}
+.cname{font-size:14px;font-weight:600}.crange{font-size:11px;color:var(--g400);margin-top:1px}
+.cprec{font-size:13px;font-weight:700;color:var(--gm)}.cprec.mid{color:var(--goldd)}.cprec.lo{color:var(--red)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--g200);border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- ═══ SCREEN 1: LISTA BUCHE ═══ -->
+<div class="screen active" id="scr-list">
+  <div style="background:linear-gradient(160deg,var(--gd),var(--gm));color:#fff;padding:16px 14px 14px;flex-shrink:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+      <div><div style="font-size:19px;font-weight:700">⛳ San Valentino</div><div style="font-size:11px;opacity:.7;margin-top:1px">Golf Club · Castellarano (RE)</div></div>
+      <div id="gmpill" class="mode-pill" onclick="toggleGlobalMode()">📋 Pianificazione</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <span style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">Par 72 · HCP 21</span>
+      <span style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">+2 colpi: B.5 B.11 B.1</span>
+      <span style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">🛰️ GPS attivo</span>
+    </div>
+  </div>
+  <div class="totbar">
+    <div class="ti"><div class="tl">Lordo</div><div class="tv gold" id="tl">–</div></div>
+    <div class="ti"><div class="tl">Stableford</div><div class="tv green" id="ts">–</div></div>
+    <div class="ti"><div class="tl">Stato</div><div class="tv" id="td" style="font-size:11px">0/18</div></div>
+  </div>
+  <div class="hole-list" id="hole-list"></div>
+</div>
+
+<!-- ═══ SCREEN 2: GPS + DETTAGLIO ═══ -->
+<div class="screen" id="scr-hole">
+  <div class="topbar">
+    <button class="back" onclick="goBack()">←</button>
+    <div class="ttl"><h1 id="dtitle">Buca 1</h1><p id="dsubt">Par 4 · 374m · SI 3</p></div>
+    <div id="dpill" class="mode-pill" onclick="toggleDetailMode()">📋 Piano</div>
+  </div>
+
+  <!-- SUB-TAB: GPS / PIANO / GARA -->
+  <div style="display:flex;background:#fff;border-bottom:1px solid var(--g200);flex-shrink:0">
+    <div class="mt-btn active" id="tab-gps" onclick="setTab('gps')" style="flex:1;padding:11px;border:none;border-bottom:3px solid var(--gm);color:var(--gm);background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">🛰️ GPS</div>
+    <div class="mt-btn" id="tab-plan" onclick="setTab('plan')" style="flex:1;padding:11px;border:none;border-bottom:3px solid transparent;color:var(--g400);background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📋 Piano</div>
+    <div class="mt-btn" id="tab-play" onclick="setTab('play')" style="flex:1;padding:11px;border:none;border-bottom:3px solid transparent;color:var(--g400);background:transparent;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">⛳ Gara</div>
+  </div>
+
+  <!-- GPS TAB -->
+  <div id="tab-content-gps" class="gps-screen">
+    <div class="gps-hero">
+      <div class="gps-hero-top">
+        <div>
+          <div style="font-size:11px;opacity:.65;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Buca corrente</div>
+          <div class="gps-hole-badge" id="gps-hole-badge">1</div>
+        </div>
+        <div class="gps-hole-info">
+          <h3 id="gps-par-info">Par 4 · 374m</h3>
+          <p id="gps-si-info">SI 3 · Par netto 6</p>
+        </div>
+      </div>
+      <div class="gps-status-bar" id="gps-status-bar-wrap">
+        <div class="gps-dot amber" id="gps-dot"></div>
+        <div class="gps-status-text" id="gps-status-text">Acquisizione GPS...</div>
+        <div class="gps-acc" id="gps-acc">–</div>
+      </div>
+      <!-- DISTANZA PRINCIPALE DALLA BANDIERA -->
+      <div class="dist-main-card" id="dist-flag-card">
+        <div class="dist-main-label">📍 Distanza dalla bandiera</div>
+        <div>
+          <span class="dist-main-value far" id="dist-flag-val">–</span>
+          <span class="dist-main-unit">m</span>
+        </div>
+        <div class="dist-main-sub" id="dist-flag-sub">In attesa del segnale GPS...</div>
+        <div class="dist-suggestion" id="dist-suggestion" style="display:none">
+          <div class="dist-sug-label">Mazza consigliata</div>
+          <div class="dist-sug-club" id="sug-club">–</div>
+          <div class="dist-sug-why" id="sug-why">–</div>
+        </div>
+      </div>
+      <!-- GRIGLIA DISTANZE -->
+      <div class="dist-grid">
+        <div class="dist-card">
+          <div class="dist-card-label">📍 Prossimo colpo</div>
+          <div class="dist-card-val" id="dist-next">–</div>
+          <div class="dist-card-sub" id="dist-next-sub">m · mazza suggerita</div>
+        </div>
+        <div class="dist-card">
+          <div class="dist-card-label">🚩 Distanza totale buca</div>
+          <div class="dist-card-val" id="dist-total">–</div>
+          <div class="dist-card-sub">m da questo tee</div>
+        </div>
+        <div class="dist-card">
+          <div class="dist-card-label">📏 Ultimo colpo</div>
+          <div class="dist-card-val" id="dist-last">–</div>
+          <div class="dist-card-sub" id="dist-last-sub">m percorsi</div>
+        </div>
+        <div class="dist-card">
+          <div class="dist-card-label">🎯 Precisione GPS</div>
+          <div class="dist-card-val" id="dist-acc">–</div>
+          <div class="dist-card-sub">m accuratezza</div>
+        </div>
+      </div>
+      <!-- PULSANTI GPS -->
+      <div class="gps-actions">
+        <button class="gps-btn primary" onclick="markShot()">
+          <span class="gbi">📍</span>Segna colpo
+        </button>
+        <button class="gps-btn secondary" onclick="markFlag()">
+          <span class="gbi">🚩</span>Segna bandiera
+        </button>
+        <button class="gps-btn secondary" onclick="markTee()">
+          <span class="gbi">🏌️</span>Segna tee
+        </button>
+        <button class="gps-btn danger" onclick="clearShots()">
+          <span class="gbi">🗑️</span>Reset buca
+        </button>
+      </div>
+    </div>
+
+    <!-- MAPPA COLPI TRACCIATI -->
+    <div class="shot-map">
+      <div class="sec-title">
+        Colpi tracciati
+        <span id="shot-count-badge" style="font-size:11px;background:var(--gp);color:var(--gm);border-radius:20px;padding:2px 8px;font-weight:600">0 colpi</span>
+      </div>
+      <div id="shot-track-list">
+        <div style="text-align:center;padding:20px;color:var(--g400);font-size:13px">
+          Premi <strong>📍 Segna colpo</strong> ogni volta che colpisci la palla.<br>
+          <span style="font-size:11px;opacity:.7">La posizione GPS viene salvata automaticamente.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUSSOLA DIREZIONE -->
+    <div class="compass-wrap">
+      <div class="compass-card">
+        <div class="compass-title">Direzione verso la bandiera</div>
+        <div class="compass-svg-wrap">
+          <svg id="compass-svg" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="75" fill="none" stroke="#e2e8f0" stroke-width="2"/>
+            <circle cx="80" cy="80" r="55" fill="none" stroke="#f0f4f2" stroke-width="1"/>
+            <text x="80" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="#9aa5b4" font-family="Outfit,sans-serif">N</text>
+            <text x="80" y="152" text-anchor="middle" font-size="12" font-weight="700" fill="#9aa5b4" font-family="Outfit,sans-serif">S</text>
+            <text x="148" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#9aa5b4" font-family="Outfit,sans-serif">E</text>
+            <text x="12" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#9aa5b4" font-family="Outfit,sans-serif">O</text>
+            <!-- Freccia direzione bandiera -->
+            <g id="compass-arrow" transform="rotate(0,80,80)">
+              <polygon points="80,18 86,70 74,70" fill="#f4a261"/>
+              <polygon points="80,142 86,90 74,90" fill="#dde2e8"/>
+              <circle cx="80" cy="80" r="8" fill="#1a3d2b"/>
+            </g>
+          </svg>
+        </div>
+        <div class="compass-info">
+          <div class="ci-item"><div class="ci-label">Direzione</div><div class="ci-value" id="bearing-val">–°</div></div>
+          <div class="ci-item"><div class="ci-label">Distanza</div><div class="ci-value" id="bearing-dist">–m</div></div>
+          <div class="ci-item"><div class="ci-label">Bandiera</div><div class="ci-value" id="flag-set-status">Non segnata</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+
+  <!-- PIANO TAB -->
+  <div id="tab-content-plan" class="hdetail" style="display:none"></div>
+  <!-- GARA TAB -->
+  <div id="tab-content-play" class="hdetail" style="display:none"></div>
+
+  <div class="savebar" id="savebar"></div>
+</div>
+
+<!-- MODAL MAZZA -->
+<div class="moverlay" id="modal" onclick="closeModal(event)">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="mtitle" id="mtitle">Scegli mazza</div>
+    <div class="msubt" id="msubt"></div>
+    <div id="mlist"></div>
+    <div style="height:10px"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// MAZZE
+// ═══════════════════════════════════════
+const CLUBS=[
+  {id:'drive',n:'Drive',    min:200,max:240,p:.70,g:'Legno', i:'ci-D',l:'D'},
+  {id:'leg3', n:'Legno 3',  min:180,max:210,p:.80,g:'Legno', i:'ci-L',l:'L3'},
+  {id:'ib4',  n:'Ibrido 4', min:180,max:190,p:.80,g:'Ibrido',i:'ci-H',l:'H4'},
+  {id:'ib3',  n:'Ibrido 3', min:180,max:200,p:.50,g:'Ibrido',i:'ci-H',l:'H3'},
+  {id:'f5',   n:'Ferro 5',  min:160,max:185,p:.80,g:'Ferro', i:'ci-F',l:'5'},
+  {id:'f6',   n:'Ferro 6',  min:155,max:170,p:.95,g:'Ferro', i:'ci-F',l:'6'},
+  {id:'f7',   n:'Ferro 7',  min:150,max:160,p:.85,g:'Ferro', i:'ci-F',l:'7'},
+  {id:'f8',   n:'Ferro 8',  min:130,max:145,p:.95,g:'Ferro', i:'ci-F',l:'8'},
+  {id:'f9',   n:'Ferro 9',  min:110,max:130,p:.90,g:'Ferro', i:'ci-F',l:'9'},
+  {id:'pit',  n:'Pitch',    min:100,max:120,p:.95,g:'Wedge', i:'ci-W',l:'PW'},
+  {id:'w50',  n:'50°',      min:70, max:100,p:.80,g:'Wedge', i:'ci-W',l:'50'},
+  {id:'w56',  n:'56°',      min:40, max:80, p:.80,g:'Wedge', i:'ci-W',l:'56'},
+  {id:'w60',  n:'60°',      min:10, max:50, p:.80,g:'Wedge', i:'ci-W',l:'60'},
+];
+const gc=id=>CLUBS.find(c=>c.id===id);
+const cmid=(c,pen)=>Math.round((c.min+c.max)/2*(pen?.95:1));
+const cprec=(c,pen)=>pen?c.p*.95:c.p;
+
+function suggestClub(dist){
+  if(dist<=0)return null;
+  const eligible=CLUBS.filter(c=>c.id!=='drive');
+  let best=null,bs=Infinity;
+  for(const c of eligible){
+    const m=(c.min+c.max)/2;
+    if(dist<=c.max*1.05&&dist>=c.min*.6){
+      const pp=c.id==='ib3'?.4:c.id==='leg3'?.1:0;
+      const sc=Math.abs(m-dist)/(m||1)+pp;
+      if(sc<bs){bs=sc;best=c;}
+    }
+  }
+  return best||eligible.reduce((a,b)=>b.max>a.max?b:a);
+}
+
+// ═══════════════════════════════════════
+// BUCHE
+// ═══════════════════════════════════════
+const HD=[
+  {n:1, par:4,dist:374,si:3},  {n:2, par:5,dist:455,si:9},
+  {n:3, par:3,dist:186,si:14}, {n:4, par:4,dist:321,si:15},
+  {n:5, par:4,dist:424,si:1},  {n:6, par:4,dist:403,si:7},
+  {n:7, par:4,dist:336,si:10}, {n:8, par:3,dist:158,si:8},
+  {n:9, par:5,dist:482,si:4},  {n:10,par:4,dist:324,si:7},
+  {n:11,par:4,dist:410,si:2},  {n:12,par:3,dist:113,si:16},
+  {n:13,par:4,dist:235,si:18}, {n:14,par:4,dist:331,si:11},
+  {n:15,par:5,dist:459,si:12}, {n:16,par:3,dist:113,si:17},
+  {n:17,par:4,dist:344,si:5},  {n:18,par:5,dist:445,si:13},
+];
+const extra=si=>Math.floor(21/18)+(si<=(21%18)?1:0);
+const netpar=h=>h.par+extra(h.si);
+
+function autoPick(dist,pen){
+  const f=pen?.95:1,el=CLUBS.filter(c=>c.id!=='drive');
+  let best=null,bs=Infinity;
+  for(const c of el){
+    const em=((c.min+c.max)/2)*f;
+    if(dist<=c.max*f*1.1&&dist>=c.min*f*.6){
+      const pp=c.id==='ib3'?.4:c.id==='leg3'?.1:0;
+      const sc=Math.abs(em-dist)/(em||1)+pp;
+      if(sc<bs){bs=sc;best=c;}
+    }
+  }
+  return best||el.reduce((a,b)=>b.max>a.max?b:a);
+}
+
+function genShots(h){
+  let shots=[],rem=h.dist;
+  if(h.par===3){
+    const c=autoPick(rem,false);
+    shots.push({id:c.id,pen:false,isPutt:false,planId:c.id});rem-=cmid(c,false);
+  } else {
+    shots.push({id:'drive',pen:false,isPutt:false,planId:'drive'});rem-=cmid(gc('drive'),false);
+  }
+  let n=1;
+  while(rem>25&&n<6){
+    const c=autoPick(rem,true);shots.push({id:c.id,pen:true,isPutt:false,planId:c.id});rem-=cmid(c,true);n++;
+  }
+  shots.push({id:'putt',isPutt:true,pen:true,planId:'putt'});
+  shots.push({id:'putt',isPutt:true,pen:true,planId:'putt'});
+  return shots;
+}
+
+// ═══════════════════════════════════════
+// STATO
+// ═══════════════════════════════════════
+let globalMode='plan';
+let curHole=0;
+let curTab='gps';
+let modalCtx=null;
+
+const S=HD.map(h=>({
+  ...h,
+  planShots:genShots(h),
+  playShots:null,
+  manualTotal:null,
+  notes:[],
+  saved:false,
+  // GPS data per buca
+  gps:{
+    teePos:null,      // {lat,lng} posizione tee
+    flagPos:null,     // {lat,lng} posizione bandiera
+    shots:[],         // [{lat,lng,dist,club,time}] colpi segnati
+    currentShotIdx:0, // indice colpo corrente
+  }
+}));
+
+function ensurePlay(i){
+  if(!S[i].playShots)S[i].playShots=S[i].planShots.map(s=>({...s}));
+}
+function getShots(i,mode){
+  if(mode==='play'){ensurePlay(i);return S[i].playShots;}
+  return S[i].planShots;
+}
+function calcTotal(i){return S[i].manualTotal!==null?S[i].manualTotal:getShots(i,'play').length;}
+function calcStab(i){return Math.max(0,netpar(S[i])-calcTotal(i)+2);}
+function calcPlanTot(i){return S[i].planShots.length;}
+function calcPlanStab(i){return Math.max(0,netpar(S[i])-calcPlanTot(i)+2);}
+
+// ═══════════════════════════════════════
+// GPS ENGINE
+// ═══════════════════════════════════════
+let watchId=null;
+let currentPos=null;
+let gpsReady=false;
+
+// Distanza Haversine in metri
+function haversine(lat1,lng1,lat2,lng2){
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+
+// Bearing in gradi (0=Nord, 90=Est, 180=Sud, 270=Ovest)
+function bearing(lat1,lng1,lat2,lng2){
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const y=Math.sin(dLng)*Math.cos(lat2*Math.PI/180);
+  const x=Math.cos(lat1*Math.PI/180)*Math.sin(lat2*Math.PI/180)-Math.sin(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.cos(dLng);
+  return(Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+
+function startGPS(){
+  if(!navigator.geolocation){
+    setGpsStatus('red','GPS non supportato','');
+    showGpsManualBtn();
+    return;
+  }
+  setGpsStatus('amber','Acquisizione GPS...','');
+  
+  // Primo tentativo immediato
+  function tryGet(){
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        currentPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        const acc=Math.round(pos.coords.accuracy);
+        gpsReady=true;
+        const mb=document.getElementById('gps-manual-btn');
+        if(mb)mb.style.display='none';
+        setGpsStatus(
+          acc<=15?'green':acc<=30?'amber':'red',
+          acc<=15?'GPS preciso - '+acc+'m':acc<=30?'GPS buono - '+acc+'m':'GPS debole - '+acc+'m',
+          '+-'+acc+'m'
+        );
+        const ae=document.getElementById('dist-acc');
+        if(ae)ae.textContent=acc;
+        updateGpsDistances();
+      },
+      function(err){
+        gpsReady=false;
+        if(err.code===1){
+          // Permesso negato - mostra manuale
+          setGpsStatus('red','Abilita posizione: Impostazioni > Privacy > Posizione > Samsung Internet','');
+          showGpsManualBtn();
+        } else {
+          setGpsStatus('amber','GPS in ricerca - segnale debole...','');
+        }
+      },
+      {enableHighAccuracy:true,maximumAge:5000,timeout:10000}
+    );
+  }
+  
+  // Prova subito e poi ogni 3 secondi
+  tryGet();
+  watchId=setInterval(tryGet, 3000);
+}
+
+
+function showGpsManualBtn(){
+  let btn=document.getElementById('gps-manual-btn');
+  if(btn){btn.style.display='block';return;}
+  const sb=document.getElementById('gps-status-bar-wrap');
+  if(!sb)return;
+  btn=document.createElement('div');
+  btn.id='gps-manual-btn';
+  btn.style.cssText='margin-top:10px';
+  btn.innerHTML=`
+    <div style="background:rgba(255,200,0,.15);border:1px solid rgba(255,200,0,.4);border-radius:12px;padding:12px 13px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px">📍 Per attivare il GPS:</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.85);line-height:1.7">
+        1. Chiudi questa app<br>
+        2. <strong>Impostazioni Samsung</strong> → <strong>Privacy</strong><br>
+        3. → <strong>Gestione autorizzazioni</strong> → <strong>Posizione</strong><br>
+        4. → <strong>Samsung Internet</strong> → <strong>Consenti sempre</strong><br>
+        5. Riapri il file → GPS si attiva
+      </div>
+      <button onclick="tryGpsAgain()" style="margin-top:10px;width:100%;padding:10px;background:#52b788;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif">
+        🔄 Riprova GPS
+      </button>
+    </div>
+    <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 13px">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:6px">📍 Oppure inserisci posizione manuale</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.65);margin-bottom:9px">Google Maps → tieni premuto sulla tua posizione → copia coordinate</div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <input id="gps-lat-input" type="number" step="0.000001" placeholder="Lat. es. 44.5123"
+          style="flex:1;padding:9px 8px;border-radius:8px;border:none;font-size:12px;font-family:Outfit,sans-serif;background:rgba(255,255,255,.9);color:#1a202c">
+        <input id="gps-lng-input" type="number" step="0.000001" placeholder="Lng. es. 10.745"
+          style="flex:1;padding:9px 8px;border-radius:8px;border:none;font-size:12px;font-family:Outfit,sans-serif;background:rgba(255,255,255,.9);color:#1a202c">
+        <button onclick="setManualPos()" style="padding:9px 12px;background:#52b788;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif">OK</button>
+      </div>
+    </div>`;
+  sb.after(btn);
+}
+
+function tryGpsAgain(){
+  gpsReady=false;
+  setGpsStatus('amber','GPS in ricerca...','');
+  if(watchId){clearInterval(watchId);}
+  startGPS();
+}
+
+
+function setManualPos(){
+  const lat=parseFloat(document.getElementById('gps-lat-input')?.value);
+  const lng=parseFloat(document.getElementById('gps-lng-input')?.value);
+  if(isNaN(lat)||isNaN(lng)||lat<35||lat>48||lng<6||lng>19){
+    alert('Coordinate non valide. Latitudine circa 44.x, Longitudine circa 10.x');
+    return;
+  }
+  currentPos={lat,lng};
+  gpsReady=true;
+  setGpsStatus('green',`Posizione manuale impostata · ${lat.toFixed(5)}, ${lng.toFixed(5)}`,'manuale');
+  document.getElementById('dist-acc').textContent='manuale';
+  const btn=document.getElementById('gps-manual-btn');
+  if(btn)btn.style.display='none';
+  updateGpsDistances();
+  if(navigator.vibrate)navigator.vibrate(80);
+}
+
+function setGpsStatus(color,text,acc){
+  const dot=document.getElementById('gps-dot');
+  const txt=document.getElementById('gps-status-text');
+  const accEl=document.getElementById('gps-acc');
+  if(dot){dot.className='gps-dot '+color;}
+  if(txt)txt.textContent=text;
+  if(accEl)accEl.textContent=acc;
+}
+
+function updateGpsDistances(){
+  if(!currentPos||curTab!=='gps')return;
+  const h=S[curHole];
+  const g=h.gps;
+
+  // Distanza dalla bandiera
+  const flagEl=document.getElementById('dist-flag-val');
+  const flagSub=document.getElementById('dist-flag-sub');
+  const sugDiv=document.getElementById('dist-suggestion');
+  const sugClub=document.getElementById('sug-club');
+  const sugWhy=document.getElementById('sug-why');
+
+  if(g.flagPos){
+    const d=haversine(currentPos.lat,currentPos.lng,g.flagPos.lat,g.flagPos.lng);
+    if(flagEl){
+      flagEl.textContent=d;
+      flagEl.className='dist-main-value '+(d>150?'far':d>60?'mid':'near');
+    }
+    if(flagSub)flagSub.textContent=`Aggiornato adesso · Hai fatto ${g.shots.length} col${g.shots.length===1?'po':'pi'}`;
+    // Suggerimento mazza
+    const cl=suggestClub(d);
+    if(cl&&sugDiv){
+      sugDiv.style.display='block';
+      sugClub.textContent=`${cl.n}`;
+      sugWhy.textContent=`Gittata ${cl.min}–${cl.max}m · Precisione ${Math.round(cl.p*100)}%`;
+    }
+    // Bussola
+    const b=bearing(currentPos.lat,currentPos.lng,g.flagPos.lat,g.flagPos.lng);
+    const arrow=document.getElementById('compass-arrow');
+    if(arrow)arrow.setAttribute('transform',`rotate(${Math.round(b)},80,80)`);
+    const bv=document.getElementById('bearing-val');
+    const bd=document.getElementById('bearing-dist');
+    if(bv)bv.textContent=Math.round(b)+'°';
+    if(bd)bd.textContent=d+'m';
+  } else {
+    if(flagEl)flagEl.textContent='–';
+    if(flagSub)flagSub.textContent='Segna la bandiera con 🚩 per attivare le distanze';
+    if(sugDiv)sugDiv.style.display='none';
+  }
+
+  // Distanza dall'ultimo colpo segnato
+  const lastEl=document.getElementById('dist-last');
+  const lastSub=document.getElementById('dist-last-sub');
+  if(g.shots.length>0){
+    const last=g.shots[g.shots.length-1];
+    const d=haversine(currentPos.lat,currentPos.lng,last.lat,last.lng);
+    if(lastEl)lastEl.textContent=d;
+    if(lastSub)lastSub.textContent=`m da colpo ${g.shots.length}`;
+  } else if(g.teePos){
+    const d=haversine(currentPos.lat,currentPos.lng,g.teePos.lat,g.teePos.lng);
+    if(lastEl)lastEl.textContent=d;
+    if(lastSub)lastSub.textContent='m dal tee';
+  } else {
+    if(lastEl)lastEl.textContent='–';
+  }
+
+  // Prossimo colpo: distanza dalla posizione corrente alla bandiera = distanza prossimo colpo
+  const nextEl=document.getElementById('dist-next');
+  const nextSub=document.getElementById('dist-next-sub');
+  if(g.flagPos&&nextEl){
+    const d=haversine(currentPos.lat,currentPos.lng,g.flagPos.lat,g.flagPos.lng);
+    const cl=suggestClub(d);
+    nextEl.textContent=d;
+    if(nextSub)nextSub.textContent=cl?`m · consiglio: ${cl.n}`:'m';
+  }
+
+  // Distanza totale buca da tee
+  const totalEl=document.getElementById('dist-total');
+  if(totalEl)totalEl.textContent=h.dist;
+}
+
+// ═══════════════════════════════════════
+// AZIONI GPS
+// ═══════════════════════════════════════
+function markShot(){
+  if(!gpsReady||!currentPos){
+    setGpsStatus('amber','GPS in arrivo - vai all aperto','');
+    showGpsManualBtn();
+    return;
+  }
+  const h=S[curHole];const g=h.gps;
+  const shotNum=g.shots.length+1;
+  const prevPos=g.shots.length>0?g.shots[g.shots.length-1]:(g.teePos||currentPos);
+  const dist=haversine(prevPos.lat,prevPos.lng,currentPos.lat,currentPos.lng);
+
+  // Mazza attuale dal piano
+  const nonPutt=S[curHole].planShots.filter(s=>!s.isPutt);
+  const clubId=nonPutt[g.shots.length]?.id||'f9';
+  const club=gc(clubId);
+
+  g.shots.push({
+    lat:currentPos.lat,lng:currentPos.lng,
+    dist,club:club?club.n:'–',clubId,
+    time:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
+    shotNum
+  });
+  g.currentShotIdx=g.shots.length;
+  renderShotTrack();
+  updateGpsDistances();
+  // Vibra se disponibile
+  if(navigator.vibrate)navigator.vibrate(80);
+  saveState();
+}
+
+function markFlag(){
+  if(!gpsReady||!currentPos){
+    setGpsStatus('amber','GPS in arrivo - vai all aperto','');
+    showGpsManualBtn();
+    return;
+  }
+  S[curHole].gps.flagPos={lat:currentPos.lat,lng:currentPos.lng};
+  document.getElementById('flag-set-status').textContent='✓ Segnata';
+  document.getElementById('flag-set-status').style.color='var(--gm)';
+  updateGpsDistances();
+  if(navigator.vibrate)navigator.vibrate([80,40,80]);
+  saveState();
+}
+
+function markTee(){
+  if(!gpsReady||!currentPos){
+    setGpsStatus('amber','GPS in arrivo - vai all aperto','');
+    showGpsManualBtn();
+    return;
+  }
+  S[curHole].gps.teePos={lat:currentPos.lat,lng:currentPos.lng};
+  updateGpsDistances();
+  if(navigator.vibrate)navigator.vibrate(80);
+  const txt=document.getElementById('gps-status-text');
+  if(txt)txt.textContent='✓ Tee segnato · '+txt.textContent.replace('✓ Tee segnato · ','');
+}
+
+function clearShots(){
+  if(!confirm('Reset GPS buca '+S[curHole].n+'?'))return;
+  S[curHole].gps={teePos:null,flagPos:null,shots:[],currentShotIdx:0};
+  document.getElementById('flag-set-status').textContent='Non segnata';
+  document.getElementById('flag-set-status').style.color='';
+  renderShotTrack();
+  updateGpsDistances();
+}
+
+function deleteShot(idx){
+  S[curHole].gps.shots.splice(idx,1);
+  renderShotTrack();
+  updateGpsDistances();
+}
+
+function renderShotTrack(){
+  const shots=S[curHole].gps.shots;
+  const el=document.getElementById('shot-track-list');
+  const badge=document.getElementById('shot-count-badge');
+  if(badge)badge.textContent=shots.length+' col'+(shots.length===1?'po':'pi');
+  if(!shots.length){
+    if(el)el.innerHTML='<div style="text-align:center;padding:18px;color:var(--g400);font-size:13px">Premi <strong>📍 Segna colpo</strong> ogni volta che colpisci la palla.<br><span style="font-size:11px;opacity:.7">La posizione GPS viene salvata automaticamente.</span></div>';
+    return;
+  }
+  let html='';
+  shots.forEach((s,i)=>{
+    const isLast=i===shots.length-1;
+    const flagDist=S[curHole].gps.flagPos&&currentPos?
+      haversine(s.lat,s.lng,S[curHole].gps.flagPos.lat,S[curHole].gps.flagPos.lng):'–';
+    html+=`<div class="shot-track">
+      <div class="st-header">
+        <div class="st-num ${isLast?'active':'done'}">${s.shotNum}</div>
+        <div class="st-info">
+          <div class="st-club">${s.club} <span style="font-size:10px;color:var(--g400)">· ${s.time}</span></div>
+          <div class="st-dist">Percorsi: ~${s.dist}m · Dalla bandiera: ${flagDist==='–'?'–':flagDist+'m'}</div>
+        </div>
+        <div class="st-gps">
+          <div class="st-gps-val ${isLast?'active':''}">${s.dist}m</div>
+          <div class="st-gps-label">percorsi</div>
+        </div>
+      </div>
+      <div class="st-actions">
+        <button class="sta-btn" onclick="changeShotClub(${i})">✏️ Mazza</button>
+        <button class="sta-btn danger" onclick="deleteShot(${i})">🗑️ Elimina</button>
+      </div>
+    </div>`;
+  });
+  if(el)el.innerHTML=html;
+}
+
+function changeShotClub(shotIdx){
+  // Apri modale mazza per quel colpo GPS
+  modalCtx={holeIdx:curHole,shotIdx,mode:'gps'};
+  const s=S[curHole].gps.shots[shotIdx];
+  document.getElementById('mtitle').textContent=`Colpo ${shotIdx+1} — Mazza usata`;
+  document.getElementById('msubt').textContent=`Hai percorso ~${s.dist}m · Modifica la mazza registrata`;
+  const groups=[...new Set(CLUBS.map(c=>c.g))];
+  let html='';
+  for(const g of groups){
+    const list=CLUBS.filter(c=>c.g===g&&c.id!=='drive'||c.id==='drive'&&shotIdx===0);
+    if(!list.length)continue;
+    html+=`<div class="cgtitle">${g}</div>`;
+    for(const c of list){
+      const act=c.id===s.clubId?'active':'';
+      html+=`<div class="copt ${act}" onclick="selectGpsClub(${shotIdx},'${c.id}')">
+        <div class="cicon ${c.i}">${c.l}</div>
+        <div style="flex:1"><div class="cname">${c.n}</div><div class="crange">${c.min}–${c.max}m</div></div>
+        <div class="cprec">${Math.round(c.p*100)}%</div>
+      </div>`;
+    }
+  }
+  document.getElementById('mlist').innerHTML=html;
+  document.getElementById('modal').classList.add('open');
+}
+
+function selectGpsClub(shotIdx,clubId){
+  const c=gc(clubId);
+  if(c)S[curHole].gps.shots[shotIdx].club=c.n;
+  S[curHole].gps.shots[shotIdx].clubId=clubId;
+  closeModal();
+  renderShotTrack();
+}
+
+// ═══════════════════════════════════════
+// TAB MANAGEMENT
+// ═══════════════════════════════════════
+function setTab(tab){
+  curTab=tab;
+  ['gps','plan','play'].forEach(t=>{
+    const content=document.getElementById('tab-content-'+t);
+    const tabBtn=document.getElementById('tab-'+t);
+    if(content)content.style.display=t===tab?(t==='gps'?'flex':'block'):'none';
+    if(tabBtn){
+      tabBtn.style.borderBottomColor=t===tab?'var(--gm)':'transparent';
+      tabBtn.style.color=t===tab?'var(--gm)':'var(--g400)';
+    }
+  });
+  if(tab==='plan')renderTabContent('plan');
+  if(tab==='play')renderTabContent('play');
+  if(tab==='gps')updateGpsDistances();
+  updateSaveBar();
+}
+
+function updateSaveBar(){
+  const sb=document.getElementById('savebar');
+  if(!sb)return;
+  if(curTab==='gps'){
+    sb.innerHTML=`<button class="sbtn gps-btn-main" onclick="markShot()">📍 Segna colpo — GPS</button>`;
+  } else if(curTab==='play'){
+    sb.innerHTML=`
+      <button class="sbtn secondary" onclick="resetToPlan(${curHole})">↺ Reset</button>
+      <button class="sbtn primary" id="savebtn" onclick="saveHole()">✓ Salva buca</button>`;
+  } else {
+    sb.innerHTML=`<button class="sbtn secondary" onclick="openPlansModal()" style="flex:0 0 auto;padding:13px 12px;font-size:13px">📚</button><button class="sbtn secondary" onclick="printPDF()" style="flex:0 0 auto;padding:13px 12px;font-size:13px">🖨️</button><button class="sbtn primary" onclick="savePlanAs()">💾 Salva strategia</button>`;
+  }
+}
+
+// ═══════════════════════════════════════
+// RENDER PIANO / GARA
+// ═══════════════════════════════════════
+function renderTabContent(mode){
+  const el=document.getElementById('tab-content-'+mode);
+  if(!el)return;
+  const h=S[curHole];
+  const isPlay=mode==='play';
+  const shots=getShots(curHole,mode);
+  const nonPutt=shots.filter(s=>!s.isPutt);
+  const putts=shots.filter(s=>s.isPutt);
+  const np=netpar(h);
+  const tot=isPlay?calcTotal(curHole):calcPlanTot(curHole);
+  const stab=isPlay?calcStab(curHole):calcPlanStab(curHole);
+  const stabColor=stab>=2?'green':stab===1?'gold':'red';
+
+  let diffHtml='';
+  if(isPlay&&h.playShots){
+    const pIds=h.planShots.filter(s=>!s.isPutt).map(s=>s.id);
+    const xIds=nonPutt.map(s=>s.id);
+    const changes=[];
+    for(let i=0;i<Math.max(pIds.length,xIds.length);i++){
+      if(pIds[i]!==xIds[i]){
+        const pc=gc(pIds[i]),xc=gc(xIds[i]);
+        if(pc&&xc)changes.push(`Colpo ${i+1}: <b>${pc.n}</b> → <b>${xc.n}</b>`);
+        else if(!pc&&xc)changes.push(`Colpo ${i+1} aggiunto: <b>${xc.n}</b>`);
+      }
+    }
+    if(calcPlanTot(curHole)!==tot)changes.push(`Totale: piano ${calcPlanTot(curHole)} → reale ${tot}`);
+    if(changes.length)diffHtml=`<div class="diff-row" style="margin:8px 12px 0"><strong>📊 Variazioni dal piano</strong>${changes.join('<br>')}</div>`;
+  }
+
+  // Colpi GPS segnati per questo tab
+  const gpsShotsCount=h.gps.shots.length;
+  let gpsHint='';
+  if(gpsShotsCount>0&&isPlay){
+    gpsHint=`<div style="background:var(--gp);border-radius:var(--rs);padding:9px 12px;margin:8px 12px 0;font-size:12px;color:var(--gm)">
+      🛰️ <strong>${gpsShotsCount} colpi tracciati GPS</strong> in questa buca. <span onclick="setTab('gps')" style="text-decoration:underline;cursor:pointer">Vai a GPS →</span>
+    </div>`;
+  }
+
+  let html=`<div class="hhero">
+    <div class="hhero-top"><div class="hbignum">${h.n}</div>
+    <div class="hinfo"><h2>Buca ${h.n} — ${h.dist}m</h2><p>Par ${h.par} · SI ${h.si} · +${extra(h.si)} HCP</p></div></div>
+    <div class="hbadges">
+      <span class="hb">Par netto ${np}</span>
+      <span class="hb ${stab>=2?'gold':''}">${stab}pt Stab.</span>
+      <span class="hb sky">${tot} colpi ${isPlay?'reali':'piano'}</span>
+    </div>
+  </div>${diffHtml}${gpsHint}
+  <div class="sec"><div class="sectitle">${isPlay?'⛳ Colpi reali':'📋 Piano colpi'}
+    <span class="stbadge ${isPlay?'play':''}">${isPlay?'In campo':'Pre-gara'}</span>
+  </div>`;
+
+  let remDist=h.dist;
+  nonPutt.forEach((s,i)=>{
+    const c=gc(s.id);if(!c)return;
+    const pen=i>0;
+    const d=cmid(c,pen),pr=Math.round(cprec(c,pen)*100);
+    const prcls=pr>=80?'phi':pr>=65?'pmi':'plo';
+    const remAfter=Math.max(0,remDist-d);
+    const penNote=pen?`<span style="color:var(--goldd);font-size:10px"> −5%</span>`:'';
+    const changed=isPlay&&h.playShots&&h.planShots[i]&&h.planShots[i].id!==s.id?' changed':'';
+    const isCurrentGps=isPlay&&i===h.gps.currentShotIdx;
+    // Badge GPS live
+    let gpsBadge='';
+    if(isPlay&&h.gps.flagPos&&currentPos){
+      const liveDist=haversine(currentPos.lat,currentPos.lng,h.gps.flagPos.lat,h.gps.flagPos.lng);
+      if(i===nonPutt.length-1)gpsBadge=`<span class="gps-dist-badge live">${liveDist}m GPS</span>`;
+    }
+    html+=`<div class="srow${changed}${isCurrentGps?' active-shot':''}">
+      <div class="sheader">
+        <div class="snum${changed?' changed':''}${isCurrentGps?' curr':''}">${i+1}</div>
+        <div class="smain">
+          <div class="scname">${c.n}${changed?` <span style="font-size:10px;color:var(--goldd)">(var.)</span>`:''}</div>
+          <div class="scdist">~${d}m${penNote} · <span>rimane ~${remAfter}m</span></div>
+        </div>
+        ${gpsBadge}
+        <div class="pcircle ${prcls}">${pr}%</div>
+      </div>
+      <button class="chg-btn ${isPlay?'play-mode':''}" onclick="openModal(${curHole},${i},'${mode}')">
+        ${isPlay?'🔄 Cambia in campo':'✏️ Modifica piano'}
+      </button>
+    </div>`;
+    remDist-=d;
+  });
+
+  putts.forEach((_,i)=>{
+    html+=`<div class="srow"><div class="sheader">
+      <div class="snum putt">P${i+1}</div>
+      <div class="smain"><div class="scname">Putt</div><div class="scdist" style="color:var(--g400)">Green · 2 fissi</div></div>
+      <div class="pcircle" style="background:var(--g100);color:var(--g600)">75%</div>
+    </div></div>`;
+  });
+
+  html+=`<button class="add-btn" onclick="addShot(${curHole},'${mode}')">+ Aggiungi colpo</button></div>`;
+
+  if(isPlay){
+    const ctot=calcTotal(curHole);
+    html+=`<div class="ccard">
+      <div class="ctitle">Contatore reale</div>
+      <div class="crow"><div class="clabel">Colpi totali</div>
+        <div class="ccontrols">
+          <button class="cbtn minus" ontouchstart="" onclick="adjTotal(${curHole},-1)">−</button>
+          <div class="cval" id="cval">${ctot}</div>
+          <button class="cbtn" ontouchstart="" onclick="adjTotal(${curHole},+1)">+</button>
+        </div>
+      </div>
+      <div class="spreview">
+        <div class="spi"><div class="spil">Piano</div><div class="spiv">${calcPlanTot(curHole)}</div></div>
+        <div class="spi"><div class="spil">Reale</div><div class="spiv" id="prev-tot">${ctot}</div></div>
+        <div class="spi"><div class="spil">Lordo</div><div class="spiv gold" id="prev-lordo">${ctot}</div></div>
+        <div class="spi"><div class="spil">Stableford</div><div class="spiv ${stabColor}" id="prev-stab">${stab}pt</div></div>
+      </div>
+    </div>`;
+  } else {
+    html+=`<div class="ccard"><div class="ctitle">Stima pianificata</div>
+      <div class="spreview">
+        <div class="spi"><div class="spil">Par netto</div><div class="spiv">${np}</div></div>
+        <div class="spi"><div class="spil">Colpi</div><div class="spiv">${calcPlanTot(curHole)}</div></div>
+        <div class="spi"><div class="spil">Lordo</div><div class="spiv gold">${calcPlanTot(curHole)}</div></div>
+        <div class="spi"><div class="spil">Stab.</div><div class="spiv ${stabColor}">${calcPlanStab(curHole)}pt</div></div>
+      </div>
+    </div>`;
+  }
+
+  const noteOpts=['OB 🚫','Bunker 🏖','Rough 🌿','Acqua 💧','Vento 💨','Alberi 🌳','Slope ⛰','Green veloce','Dogleg sx','Dogleg dx'];
+  html+=`<div class="nsec"><div class="sectitle">Note</div><div class="nchips">`;
+  for(const nn of noteOpts){
+    const act=S[curHole].notes.includes(nn)?'active':'';
+    html+=`<div class="nchip ${act}" onclick="toggleNote(${curHole},'${nn}')">${nn}</div>`;
+  }
+  html+=`</div></div>`;
+
+  const prev=curHole>0?S[curHole-1].n:null;
+  const next=curHole<S.length-1?S[curHole+1].n:null;
+  html+=`<div class="navarr">
+    ${prev?`<button class="narr" onclick="goHole(${curHole-1})">← B.${prev}</button>`:'<div style="flex:1"></div>'}
+    ${next?`<button class="narr next" onclick="goHole(${curHole+1})">B.${next} →</button>`:'<div style="flex:1"></div>'}
+  </div>`;
+
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════
+// NAVIGAZIONE
+// ═══════════════════════════════════════
+function toggleGlobalMode(){
+  globalMode=globalMode==='plan'?'play':'plan';
+  document.getElementById('gmpill').textContent=globalMode==='plan'?'📋 Pianificazione':'⛳ Gara in corso';
+  document.getElementById('gmpill').className='mode-pill'+(globalMode==='play'?' play':'');
+  renderList();
+}
+
+function toggleDetailMode(){
+  const newMode=curTab==='gps'?'gps':curTab==='plan'?'play':'plan';
+  setTab(newMode==='gps'?'plan':newMode);
+}
+
+function openHole(i){
+  curHole=i;
+  document.getElementById('scr-list').classList.remove('active');
+  document.getElementById('scr-hole').classList.add('active');
+  document.getElementById('dtitle').textContent=`Buca ${S[i].n}`;
+  document.getElementById('dsubt').textContent=`Par ${S[i].par} · ${S[i].dist}m · SI ${S[i].si}`;
+  document.getElementById('gps-hole-badge').textContent=S[i].n;
+  document.getElementById('gps-par-info').textContent=`Par ${S[i].par} · ${S[i].dist}m`;
+  document.getElementById('gps-si-info').textContent=`SI ${S[i].si} · Par netto ${netpar(S[i])}`;
+  document.getElementById('dist-total').textContent=S[i].dist;
+  setTab('gps');
+  renderShotTrack();
+  updateGpsDistances();
+  // Aggiorna stato bandiera
+  const fs=document.getElementById('flag-set-status');
+  if(fs){fs.textContent=S[i].gps.flagPos?'✓ Segnata':'Non segnata';fs.style.color=S[i].gps.flagPos?'var(--gm)':'';}
+}
+
+function goBack(){
+  document.getElementById('scr-hole').classList.remove('active');
+  document.getElementById('scr-list').classList.add('active');
+  renderList();
+}
+
+function goHole(i){
+  curHole=i;
+  document.getElementById('dtitle').textContent=`Buca ${S[i].n}`;
+  document.getElementById('dsubt').textContent=`Par ${S[i].par} · ${S[i].dist}m · SI ${S[i].si}`;
+  document.getElementById('gps-hole-badge').textContent=S[i].n;
+  document.getElementById('gps-par-info').textContent=`Par ${S[i].par} · ${S[i].dist}m`;
+  document.getElementById('gps-si-info').textContent=`SI ${S[i].si} · Par netto ${netpar(S[i])}`;
+  document.getElementById('dist-total').textContent=S[i].dist;
+  setTab(curTab);
+  renderShotTrack();
+  updateGpsDistances();
+  const fs=document.getElementById('flag-set-status');
+  if(fs){fs.textContent=S[i].gps.flagPos?'✓ Segnata':'Non segnata';fs.style.color=S[i].gps.flagPos?'var(--gm)':'';}
+  const cont=document.getElementById('tab-content-'+curTab);
+  if(cont)cont.scrollTop=0;
+}
+
+// ═══════════════════════════════════════
+// AZIONI
+// ═══════════════════════════════════════
+function adjTotal(i,d){
+  const h=S[i];const cur=calcTotal(i);
+  h.manualTotal=Math.max(1,cur+d);
+  const cv=document.getElementById('cval');if(cv)cv.textContent=h.manualTotal;
+  const pt=document.getElementById('prev-tot');if(pt)pt.textContent=h.manualTotal;
+  const pl=document.getElementById('prev-lordo');if(pl)pl.textContent=h.manualTotal;
+  const st=calcStab(i);
+  const ps=document.getElementById('prev-stab');
+  if(ps){ps.textContent=st+'pt';ps.className='spiv '+(st>=2?'green':st===1?'gold':'red');}
+  saveState();
+}
+
+function addShot(i,mode){
+  const shots=getShots(i,mode);
+  const pi=shots.findIndex(s=>s.isPutt);
+  const ns={id:'f9',pen:true,isPutt:false,planId:'f9'};
+  if(pi>=0)shots.splice(pi,0,ns);else shots.push(ns);
+  S[i].manualTotal=null;
+  renderTabContent(mode);
+  saveState();
+}
+
+function resetToPlan(i){
+  S[i].playShots=S[i].planShots.map(s=>({...s}));
+  S[i].manualTotal=null;
+  renderTabContent('play');
+  saveState();
+}
+
+function savePlan(){
+  const btn=document.querySelector('.sbtn.primary');
+  if(btn){btn.textContent='💾 Salvato!';setTimeout(()=>btn.textContent='💾 Salva piano',1200);}
+}
+
+function saveHole(){
+  S[curHole].saved=true;
+  saveState();
+  const btn=document.getElementById('savebtn');
+  if(btn){btn.textContent='✓ Salvato!';btn.style.background='var(--gm)';
+    setTimeout(()=>{if(btn){btn.textContent='✓ Salva buca';btn.style.background='';}},1400);}
+  renderTabContent('play');
+}
+
+function toggleNote(i,note){
+  const idx=S[i].notes.indexOf(note);
+  if(idx>=0)S[i].notes.splice(idx,1);else S[i].notes.push(note);
+  document.querySelectorAll('.nchip').forEach(ch=>{
+    if(ch.textContent===note)ch.classList.toggle('active');
+  });
+  saveState();
+}
+
+// ═══════════════════════════════════════
+// MODAL MAZZA
+// ═══════════════════════════════════════
+function openModal(holeIdx,shotIdx,mode){
+  modalCtx={holeIdx,shotIdx,mode};
+  const h=S[holeIdx];
+  const shots=getShots(holeIdx,mode);
+  const nonPutt=shots.filter(s=>!s.isPutt);
+  const pen=shotIdx>0;
+  let remDist=h.dist;
+  for(let i=0;i<shotIdx;i++){
+    const c=gc(nonPutt[i]?.id);if(c)remDist-=cmid(c,i>0);
+  }
+  remDist=Math.max(0,remDist);
+  const curId=nonPutt[shotIdx]?.id;
+  document.getElementById('mtitle').textContent=`Colpo ${shotIdx+1} · ${mode==='play'?'⛳ Gara':'📋 Piano'}`;
+  document.getElementById('msubt').textContent=`Distanza ~${Math.round(remDist)}m${pen?' (−5%)':''}`;
+  const groups=[...new Set(CLUBS.map(c=>c.g))];
+  let html='';
+  for(const g of groups){
+    let list=CLUBS.filter(c=>c.g===g);
+    if(shotIdx>0||h.par===3)list=list.filter(c=>c.id!=='drive');
+    if(!list.length)continue;
+    html+=`<div class="cgtitle">${g}</div>`;
+    for(const c of list){
+      const d=cmid(c,pen),pr=Math.round(cprec(c,pen)*100);
+      const prcls=pr>=80?'':pr>=65?'mid':'lo';
+      const act=c.id===curId?'active':'';
+      html+=`<div class="copt ${act}" onclick="selectClub('${c.id}','${mode}')">
+        <div class="cicon ${c.i}">${c.l}</div>
+        <div style="flex:1"><div class="cname">${c.n}</div><div class="crange">${c.min}–${c.max}m${pen?' (−5%)':''} · ~${d}m</div></div>
+        <div class="cprec ${prcls}">${pr}%</div>
+      </div>`;
+    }
+  }
+  document.getElementById('mlist').innerHTML=html;
+  document.getElementById('modal').classList.add('open');
+}
+
+function selectClub(id,mode){
+  if(!modalCtx)return;
+  const {holeIdx,shotIdx}=modalCtx;
+  if(modalCtx.mode==='gps'){selectGpsClub(shotIdx,id);return;}
+  const shots=getShots(holeIdx,mode||modalCtx.mode);
+  const nonPutt=shots.filter(s=>!s.isPutt);
+  const putts=shots.filter(s=>s.isPutt);
+  nonPutt[shotIdx].id=id;
+  if((mode||modalCtx.mode)==='play'){S[holeIdx].playShots=[...nonPutt,...putts];}
+  else{S[holeIdx].planShots=[...nonPutt,...putts];}
+  S[holeIdx].manualTotal=null;
+  closeModal();
+  renderTabContent(mode||modalCtx.mode);
+  saveState();
+}
+
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('modal'))return;
+  document.getElementById('modal').classList.remove('open');
+  modalCtx=null;
+}
+
+// ═══════════════════════════════════════
+// RENDER LISTA
+// ═══════════════════════════════════════
+function renderList(){
+  const list=document.getElementById('hole-list');
+  let html='';
+  for(let i=0;i<S.length;i++){
+    const h=S[i];
+    if(i===0)html+='<div class="half-lbl">Out — Primi 9</div>';
+    if(i===9)html+='<div class="half-lbl">In — Ultimi 9</div>';
+    const ex=extra(h.si),np=netpar(h);
+    const pclass=h.par===3?'p3':h.par===4?'p4':'p5';
+    const pTot=calcPlanTot(i),pStab=calcPlanStab(i);
+    const xTot=calcTotal(i),xStab=calcStab(i);
+    let cc='hcard';
+    let st='';
+    if(h.saved){cc+=' saved';st='✓ Giocata';}
+    else if(globalMode==='play'){cc+=' planned';st='Piano pronto';}
+    else cc+=' planned';
+    const showScore=(globalMode==='play'&&h.saved)||globalMode==='plan';
+    const tot=h.saved?xTot:pTot;const stab=h.saved?xStab:pStab;
+    const sc=stab>=2?'s2':stab===1?'s1':'s0';
+    const gpsDot=h.gps.shots.length>0?`<span style="font-size:9px;color:var(--gm)"> · 🛰️${h.gps.shots.length}</span>`:'';
+    const clubs=h.planShots.filter(s=>!s.isPutt).slice(0,3).map(s=>{const c=gc(s.id);return`<span class="ctag">${c?c.l:'?'}</span>`;}).join('');
+    html+=`<div class="${cc}" onclick="openHole(${i})">
+      <div class="hcnum"><div class="hn">${h.n}</div><div class="hp">P${h.par}</div></div>
+      <div class="hcinfo">
+        <div class="hctop"><span class="pbadge ${pclass}">Par ${h.par}</span><span class="sibadge">SI ${h.si} · +${ex} · n.${np}</span></div>
+        <div class="hcclubs">${clubs}<span class="ctag">P×2</span>${gpsDot}</div>
+        ${st?`<div class="plan-status">${st}</div>`:''}
+      </div>
+      <div class="hcscore">
+        ${showScore?`<div class="slordo">${tot}</div>`:`<div class="slordo pend">–</div>`}
+        <div class="sstab ${showScore?sc:'pend'}">${showScore?stab+'pt':'?pt'}</div>
+      </div>
+    </div>`;
+  }
+  list.innerHTML=html;
+  const done=S.filter(h=>h.saved).length;
+  if(globalMode==='plan'){
+    document.getElementById('tl').textContent=S.reduce((s,_,i)=>s+calcPlanTot(i),0);
+    document.getElementById('ts').textContent=S.reduce((s,_,i)=>s+calcPlanStab(i),0)+'pt';
+    document.getElementById('td').textContent='Stima piano';
+  } else {
+    const pLordo=S.filter(h=>h.saved).reduce((s,_,i)=>s+(h.saved?calcTotal(i):0),0);
+    document.getElementById('tl').textContent=done>0?pLordo:'–';
+    document.getElementById('ts').textContent=done>0?S.filter(h=>h.saved).reduce((s,h,i)=>s+calcStab(i),0)+'pt':'–';
+    document.getElementById('td').textContent=done+'/18';
+  }
+}
+
+// ═══════════════════════════════════════
+// PERSISTENZA + GESTIONE STRATEGIE
+// ═══════════════════════════════════════
+const ACTIVE_KEY = 'golf_sv_active';
+const PLANS_KEY  = 'golf_sv_plans';
+
+// Serializza i planShots dell'intero giro
+function serializePlan() {
+  return S.map(h => ({
+    planShots: h.planShots.map(s=>({id:s.id,pen:s.pen,isPutt:!!s.isPutt,planId:s.planId})),
+    notes: h.notes
+  }));
+}
+
+// Salva stato attivo (gara in corso, GPS, punteggi)
+function saveState() {
+  try {
+    const data = S.map(h=>({
+      planShots: h.planShots.map(s=>({id:s.id,pen:s.pen,isPutt:!!s.isPutt,planId:s.planId})),
+      playShots: h.playShots?h.playShots.map(s=>({id:s.id,pen:s.pen,isPutt:!!s.isPutt,planId:s.planId})):null,
+      manualTotal: h.manualTotal,
+      notes: h.notes,
+      saved: h.saved,
+      gps:{teePos:h.gps.teePos,flagPos:h.gps.flagPos,shots:h.gps.shots,currentShotIdx:h.gps.currentShotIdx}
+    }));
+    localStorage.setItem(ACTIVE_KEY, JSON.stringify(data));
+  } catch(e){ console.warn('Save error',e); }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!Array.isArray(data)||data.length!==18) return false;
+    data.forEach((d,i)=>{
+      if(d.planShots&&d.planShots.length) S[i].planShots=d.planShots;
+      S[i].playShots  = d.playShots||null;
+      S[i].manualTotal= d.manualTotal||null;
+      S[i].notes      = d.notes||[];
+      S[i].saved      = !!d.saved;
+      if(d.gps) S[i].gps={
+        teePos:d.gps.teePos||null, flagPos:d.gps.flagPos||null,
+        shots:d.gps.shots||[], currentShotIdx:d.gps.currentShotIdx||0
+      };
+    });
+    return true;
+  } catch(e){ console.warn('Load error',e); return false; }
+}
+
+function resetAll() {
+  if(!confirm('Cancella gara corrente e ricomincia da zero?')) return;
+  localStorage.removeItem(ACTIVE_KEY);
+  location.reload();
+}
+
+// ── LIBRERIA STRATEGIE ──
+function getPlans() {
+  try { return JSON.parse(localStorage.getItem(PLANS_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+function savePlans(plans) {
+  localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
+}
+
+function savePlanAs() {
+  const nome = prompt('Nome strategia:\n(es. "Vento forte", "Forma top", "Gara ufficiale")');
+  if(!nome||!nome.trim()) return;
+  const plans = getPlans();
+  const id = Date.now();
+  const totLordo = S.reduce((_,x,i)=>_+calcPlanTot(i),0);
+  const totStab  = S.reduce((_,x,i)=>_+calcPlanStab(i),0);
+  plans.push({
+    id, nome: nome.trim(),
+    data: new Date().toLocaleDateString('it-IT'),
+    lordo: totLordo, stab: totStab,
+    holes: serializePlan()
+  });
+  savePlans(plans);
+  showToast('💾 Strategia "'+nome.trim()+'" salvata!');
+  renderList();
+}
+
+function loadPlan(id) {
+  const plans = getPlans();
+  const p = plans.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm('Carica strategia "'+p.nome+'"?\nSovrascrive il piano corrente (i punteggi gara restano).')) return;
+  p.holes.forEach((d,i)=>{
+    if(d.planShots&&d.planShots.length) S[i].planShots=d.planShots;
+    S[i].notes = d.notes||[];
+    S[i].playShots = null;
+  });
+  saveState();
+  renderList();
+  closePlansModal();
+  showToast('✓ Strategia "'+p.nome+'" caricata');
+}
+
+function deletePlan(id) {
+  const plans = getPlans();
+  const p = plans.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm('Elimina strategia "'+p.nome+'"?')) return;
+  savePlans(plans.filter(x=>x.id!==id));
+  renderPlansModal();
+}
+
+function showToast(msg) {
+  const b = document.createElement('div');
+  b.style.cssText='position:fixed;top:0;left:0;right:0;background:#2d6a4f;color:#fff;text-align:center;padding:12px;font-size:13px;font-weight:600;z-index:9999;font-family:Outfit,sans-serif';
+  b.textContent=msg;
+  document.body.appendChild(b);
+  setTimeout(()=>b.remove(), 2400);
+}
+
+// ── MODALE LIBRERIA STRATEGIE ──
+function openPlansModal() {
+  let el = document.getElementById('plans-modal');
+  if(!el) {
+    el = document.createElement('div');
+    el.id='plans-modal';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:flex-end;font-family:Outfit,sans-serif';
+    el.onclick=e=>{if(e.target===el)closePlansModal();};
+    document.body.appendChild(el);
+  }
+  renderPlansModal();
+  el.style.display='flex';
+  requestAnimationFrame(()=>{
+    const sh=el.querySelector('.pm-sheet');
+    if(sh){sh.style.transform='translateY(0)';}
+  });
+}
+
+function closePlansModal() {
+  const el=document.getElementById('plans-modal');
+  if(el) el.style.display='none';
+}
+
+function renderPlansModal() {
+  const el=document.getElementById('plans-modal');
+  if(!el) return;
+  const plans=getPlans();
+  const totLordo=S.reduce((_,x,i)=>_+calcPlanTot(i),0);
+  const totStab =S.reduce((_,x,i)=>_+calcPlanStab(i),0);
+
+  let listHtml='';
+  if(!plans.length){
+    listHtml='<div style="text-align:center;padding:24px 16px;color:#9aa5b4;font-size:13px">Nessuna strategia salvata.<br><span style="font-size:11px">Pianifica le mazze e premi 💾 Salva strategia.</span></div>';
+  } else {
+    plans.slice().reverse().forEach(p=>{
+      listHtml+=`<div style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #f0f4f2;gap:10px">
+        <div style="flex:1;cursor:pointer" onclick="loadPlan(${p.id})">
+          <div style="font-size:15px;font-weight:600;color:#1a202c">${p.nome}</div>
+          <div style="font-size:11px;color:#9aa5b4;margin-top:2px">${p.data} · Lordo ${p.lordo} · Stab. ${p.stab}pt</div>
+        </div>
+        <button onclick="printPDFFromPlan(${p.id})" style="background:#1a3d2b;border:none;border-radius:10px;padding:7px 10px;color:#fff;font-size:12px;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🖨️</button>
+        <button onclick="deletePlan(${p.id})" style="background:#fee2e2;border:none;border-radius:10px;padding:7px 10px;color:#991b1b;font-size:12px;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🗑️</button>
+      </div>`;
+    });
+  }
+
+  el.innerHTML=`<div class="pm-sheet" style="background:#fff;border-radius:22px 22px 0 0;width:100%;max-height:85dvh;overflow-y:auto;transform:translateY(6px);transition:transform .25s;padding-bottom:20px">
+    <div style="width:38px;height:4px;background:#dde2e8;border-radius:2px;margin:12px auto 8px"></div>
+    <div style="padding:4px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f4f2">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1a3d2b">📚 Le mie strategie</div>
+        <div style="font-size:11px;color:#9aa5b4;margin-top:1px">${plans.length} strat${plans.length===1?'egia':'egie'} salvate</div>
+      </div>
+      <button onclick="closePlansModal()" style="background:#f0f4f2;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:#4a5568;cursor:pointer;font-family:Outfit,sans-serif">Chiudi</button>
+    </div>
+
+    <div style="padding:12px 16px;background:#f0fdf4;border-bottom:1px solid #d8f3dc">
+      <div style="font-size:11px;color:#2d6a4f;font-weight:600;margin-bottom:6px">📋 Piano corrente · Lordo ${totLordo} · Stab. ${totStab}pt</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="savePlanAs()" style="flex:1;background:#1a3d2b;border:none;border-radius:10px;padding:11px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif">💾 Salva come nuova strategia</button>
+        <button onclick="printPDF()" style="background:#fff;border:1.5px solid #1a3d2b;border-radius:10px;padding:11px 14px;color:#1a3d2b;font-size:13px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif">🖨️ PDF</button>
+      </div>
+    </div>
+
+    <div style="padding:8px 16px 4px;font-size:10px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px">Strategie salvate</div>
+    ${listHtml}
+
+    <div style="padding:16px 16px 4px;border-top:1px solid #f0f4f2;margin-top:4px">
+      <button onclick="resetAll()" style="width:100%;background:none;border:1.5px solid #dde2e8;border-radius:10px;padding:10px;font-size:12px;color:#9aa5b4;cursor:pointer;font-family:Outfit,sans-serif;font-weight:500">🗑️ Reset gara corrente</button>
+    </div>
+  </div>`;
+}
+
+// Stampa PDF da una strategia salvata (non quella corrente)
+function printPDFFromPlan(id) {
+  const plans=getPlans();
+  const p=plans.find(x=>x.id===id);
+  if(!p) return;
+  // Costruisce una copia temporanea con i dati di quella strategia
+  const tempS=HD.map((h,i)=>({
+    ...h,
+    planShots: p.holes[i]?p.holes[i].planShots:S[i].planShots,
+    notes: p.holes[i]?p.holes[i].notes:[],
+  }));
+  printPDFFromData(tempS, p.nome, p.data);
+}
+
+// ── PULSANTE NELLA LISTA ──
+function addResetBtn() {
+  const list=document.querySelector('.hole-list');
+  if(!list) return;
+  const wrap=document.createElement('div');
+  wrap.style.cssText='text-align:center;padding:16px 10px 8px;display:flex;gap:10px;justify-content:center';
+  wrap.innerHTML=`
+    <button onclick="openPlansModal()" style="background:#1a3d2b;border:none;border-radius:20px;padding:11px 20px;font-size:13px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600;display:flex;align-items:center;gap:7px">📚 Strategie</button>
+    <button onclick="printPDF()" style="background:#fff;border:1.5px solid #1a3d2b;border-radius:20px;padding:11px 18px;font-size:13px;color:#1a3d2b;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🖨️ PDF</button>
+  `;
+  list.appendChild(wrap);
+}
+// ═══════════════════════════════════════
+// STAMPA PDF — 18 caselle A4
+// ═══════════════════════════════════════
+function printPDF(){ printPDFFromData(S, "Piano corrente", new Date().toLocaleDateString("it-IT")); }
+
+function printPDFFromData(srcS, nomePiano, dataPiano){
+  const parColor={3:'#1d4ed8',4:'#1a3d2b',5:'#92400e'};
+  const parBg={3:'#dbeafe',4:'#d8f3dc',5:'#fef3c7'};
+  let caselle='';
+  srcS.forEach((h,i)=>{
+    const np=netpar(h);
+    const ex=extra(h.si);
+    const shots=h.planShots.filter(s=>!s.isPutt);
+    const putts=h.planShots.filter(s=>s.isPutt).length;
+    const tot=calcPlanTot(i);
+    const stab=calcPlanStab(i);
+    const stabColor=stab>=2?'#1a3d2b':stab===1?'#92400e':'#991b1b';
+    const stabBg=stab>=2?'#d8f3dc':stab===1?'#fef3c7':'#fee2e2';
+    const notes=h.notes.length?`<div class="notes">${h.notes.join(' · ')}</div>`:'';
+    let seqHtml='';
+    let rem=h.dist;
+    shots.forEach((s,si)=>{
+      const c=gc(s.id);if(!c)return;
+      const pen=si>0;
+      const d=cmid(c,pen);
+      const remAfter=Math.max(0,rem-d);
+      seqHtml+=`<div class="shot-line"><span class="sn">${si+1}</span><span class="sc">${c.n}</span><span class="sd">~${d}m</span><span class="sr2">rimane ${remAfter}m</span></div>`;
+      rem-=d;
+    });
+    seqHtml+=`<div class="shot-line putt-line"><span class="sn">P</span><span class="sc">Putt x${putts}</span><span class="sd">green</span></div>`;
+    caselle+=`<div class="box">
+      <div class="box-header" style="background:${parBg[h.par]};border-bottom:2.5px solid ${parColor[h.par]}">
+        <div class="box-num" style="color:${parColor[h.par]}">B.${h.n}</div>
+        <div class="box-meta">
+          <span class="par-tag" style="background:${parColor[h.par]};color:#fff">Par ${h.par}</span>
+          <span class="dist-tag">${h.dist}m</span>
+          <span class="si-tag">SI ${h.si}</span>
+        </div>
+        <div class="box-netto">
+          <span style="font-size:9pt;color:#555">Netto</span>
+          <span style="font-size:14pt;font-weight:700;color:${parColor[h.par]};line-height:1.1">Par ${np}</span>
+          <span style="font-size:8.5pt;color:#777">+${ex} HCP</span>
+        </div>
+      </div>
+      <div class="box-body">${seqHtml}${notes}</div>
+      <div class="box-footer">
+        <span class="stab-tag" style="background:${stabBg};color:${stabColor}">${stab}pt Stab.</span>
+        <span class="lordo-tag">${tot} colpi piano</span>
+        <span class="score-box">Reale: ___</span>
+      </div>
+    </div>`;
+  });
+
+  const calcTotSrc=(h)=>h.planShots.length;
+  const calcStabSrc=(h)=>Math.max(0,netpar(h)-calcTotSrc(h)+2);
+  const totLordoPiano=srcS.reduce((s,h)=>s+calcTotSrc(h),0);
+  const totStabPiano=srcS.reduce((s,h)=>s+calcStabSrc(h),0);
+
+  const html=`<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8">
+<title>Strategia — San Valentino Golf</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',Arial,sans-serif;background:#fff;color:#1a202c;padding:8mm}
+@page{size:A4 portrait;margin:8mm}
+.header{text-align:center;margin-bottom:5mm;padding-bottom:4mm;border-bottom:2.5px solid #1a3d2b}
+.header h1{font-size:17pt;font-weight:700;color:#1a3d2b;margin-bottom:2px}
+.header p{font-size:8.5pt;color:#666;margin-bottom:3px}
+.header .chips{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.header .chip{background:#f0f4f2;border-radius:6px;padding:2px 10px;font-size:9pt;font-weight:600;color:#1a3d2b}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5mm}
+.box{border:1.5px solid #c8d5cc;border-radius:7px;overflow:hidden;display:flex;flex-direction:column;page-break-inside:avoid}
+.box-header{padding:3mm 3mm 2.5mm;display:flex;align-items:center;gap:5px}
+.box-num{font-size:18pt;font-weight:700;line-height:1;min-width:30px}
+.box-meta{display:flex;gap:3px;align-items:center;flex:1;flex-wrap:wrap}
+.par-tag{font-size:8.5pt;font-weight:700;border-radius:10px;padding:1.5px 6px}
+.dist-tag{font-size:8.5pt;font-weight:600;color:#333}
+.si-tag{font-size:8pt;color:#888}
+.box-netto{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;text-align:right}
+.box-body{padding:2mm 3mm 1.5mm;flex:1}
+.shot-line{display:flex;align-items:center;gap:4px;margin-bottom:2.5px;font-size:9pt;line-height:1.3}
+.sn{width:15px;height:15px;border-radius:50%;background:#1a3d2b;color:#fff;font-size:7.5pt;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.putt-line .sn{background:#9aa5b4}
+.sc{font-weight:600;min-width:52px;font-size:9pt}
+.sd{color:#444;font-size:8.5pt;min-width:36px}
+.sr2{color:#2d6a4f;font-size:8pt;margin-left:auto;font-weight:500}
+.notes{font-size:7.5pt;color:#e76f51;margin-top:2px;font-weight:500}
+.box-footer{display:flex;align-items:center;gap:4px;padding:2mm 3mm;background:#f8fafb;border-top:1px solid #e2e8e4}
+.stab-tag{font-size:8.5pt;font-weight:700;border-radius:10px;padding:1.5px 7px}
+.lordo-tag{font-size:8pt;color:#555;font-weight:500}
+.score-box{margin-left:auto;font-size:8.5pt;border:1px solid #bbb;border-radius:4px;padding:1.5px 8px;color:#777;font-weight:500}
+.footer{margin-top:4mm;text-align:center;font-size:7.5pt;color:#999;border-top:1px solid #eee;padding-top:3mm}
+</style></head><body>
+<div class="header">
+  <h1>⛳ San Valentino Golf Club — ${nomePiano}</h1>
+  <p>HCP 21 · Par 72 · Tee Giallo · SI Ufficiali · +2 colpi su B.5 (SI 1) · B.11 (SI 2) · B.1 (SI 3)</p>
+  <div class="chips">
+    <span class="chip">Lordo stimato: ${totLordoPiano} colpi</span>
+    <span class="chip">Stableford stimato: ${totStabPiano} pt</span>
+    <span class="chip">Data: ${dataPiano}</span>
+  </div>
+</div>
+<div class="grid">${caselle}</div>
+<div class="footer">
+  Sequenza mazze: colpi dal 2° in poi con -5% distanza/precisione per condizioni campo &nbsp;|&nbsp;
+  Stableford: 2pt=par netto · 1pt=bogey netto · 0pt=doppio bogey &nbsp;|&nbsp;
+  In bocca al lupo! ⛳
+</div>
+</body></html>`;
+
+  const w=window.open('','_blank','width=860,height=700');
+  if(!w){alert('Abilita i popup nel browser per stampare.');return;}
+  w.document.write(html);
+  w.document.close();
+  w.onload=()=>{setTimeout(()=>{w.focus();w.print();},400);};
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+const _loaded=loadState();
+renderList();
+addResetBtn();
+startGPS();
+if(_loaded){
+  const b=document.createElement('div');
+  b.style.cssText='position:fixed;top:0;left:0;right:0;background:#2d6a4f;color:#fff;text-align:center;padding:11px;font-size:13px;font-weight:600;z-index:999;font-family:Outfit,sans-serif';
+  b.textContent='Piano caricato dalla memoria';
+  document.body.appendChild(b);
+  setTimeout(()=>b.remove(),2500);
+}
+
+// Aggiorna distanze GPS ogni 3 secondi se nella schermata GPS
+setInterval(()=>{
+  if(document.getElementById('scr-hole').classList.contains('active')&&curTab==='gps'){
+    updateGpsDistances();
+  }
+},3000);
+</script>
+</body>
+</html>

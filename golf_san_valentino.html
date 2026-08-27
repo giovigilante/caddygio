@@ -271,6 +271,7 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
       <div><div style="font-size:19px;font-weight:700">⛳ San Valentino</div><div style="font-size:11px;opacity:.7;margin-top:1px">Golf Club · Castellarano (RE)</div></div>
       <div id="gmpill" class="mode-pill play" onclick="toggleGlobalMode()">⛳ Gara in corso</div>
+      <button onclick="openSettings()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.13);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">⋮</button>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <span id="hcp-chip" style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">Par 72 · HCP 21</span>
@@ -472,6 +473,14 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
 
 <script>
 let HCP = parseInt(localStorage.getItem("golf_hcp")||"21");
+let userName = localStorage.getItem("golf_username")||"Giocatore";
+let premioFinale = localStorage.getItem("golf_premio")||"birra";
+const PREMI = {
+  birra:    {label:'Birra',       emoji:'🍺', msg:'Ora ci sta una Birra!!'},
+  ginlemon: {label:'Gin Lemon',   emoji:'🍋', msg:'Ora ci sta un Gin Lemon!!'},
+  gintonic: {label:'Gin Tonic',   emoji:'🫙', msg:'Ora ci sta un Gin Tonic!!'},
+  bollicine:{label:'Bollicine',   emoji:'🥂', msg:'Ora ci stanno le Bollicine!!'},
+};
 let gameStartTime = null;
 let gameTimerInterval = null;
 
@@ -2227,11 +2236,11 @@ function showFinalScreen(){
         </div>
       </div>
 
-      <!-- BIRRA -->
+      <!-- PREMIO -->
       <div style="background:rgba(244,208,63,.15);border:2px solid #f4d03f;border-radius:20px;padding:20px 28px;margin-bottom:28px;max-width:340px;width:100%">
-        <div style="font-size:40px;margin-bottom:8px">${birre}</div>
-        <div style="font-size:22px;font-weight:800;color:#f4d03f;letter-spacing:-0.3px">Ora ci sta una Birra!!</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px">${totStab>=36?'Ottimo giro! Ben giocato!':totStab>=30?'Buon giro! Meriti il riposo!':'Il campo era difficile oggi...'}</div>
+        <div style="font-size:40px;margin-bottom:8px">${PREMI[premioFinale].emoji}${totStab>=36?PREMI[premioFinale].emoji:''}</div>
+        <div style="font-size:22px;font-weight:800;color:#f4d03f;letter-spacing:-0.3px">${PREMI[premioFinale].msg}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px">${totStab>=36?'Ottimo giro '+userName+'! Ben giocato!':totStab>=30?'Buon giro '+userName+'! Meriti il riposo!':'Il campo era difficile oggi '+userName+'...'}</div>
       </div>
 
       <!-- Pulsanti -->
@@ -2249,6 +2258,157 @@ function showFinalScreen(){
       <div style="margin-top:24px;font-size:11px;color:rgba(255,255,255,.3)">Ci Pensa Gio' · San Valentino Golf Club</div>
     </div>
   `;
+}
+
+
+// ═══════════════════════════════════════
+// IMPOSTAZIONI
+// ═══════════════════════════════════════
+function openSettings(){
+  let el=document.getElementById('settings-modal');
+  if(!el){
+    el=document.createElement('div');
+    el.id='settings-modal';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:flex;align-items:flex-end;font-family:Outfit,sans-serif';
+    el.onclick=e=>{if(e.target===el)el.style.display='none';};
+    document.body.appendChild(el);
+  }
+  renderSettings(el);
+  el.style.display='flex';
+}
+
+function renderSettings(el){
+  const voices=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+  const itVoices=voices.filter(v=>v.lang.startsWith('it'));
+  const enVoices=voices.filter(v=>v.lang.startsWith('en'));
+  const allVoices=[...itVoices,...enVoices].slice(0,20);
+  let voiceOpts='<option value="">-- Automatica --</option>';
+  allVoices.forEach((v,i)=>{
+    const sel=(ttsVoice&&ttsVoice.name===v.name)?'selected':'';
+    voiceOpts+=`<option value="${i}" ${sel}>${v.name} (${v.lang})</option>`;
+  });
+
+  // Distanze mazze attuali
+  const clubRows = CLUBS.filter(c=>c.id!=='drive'&&c.id!=='putt').map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="flex:1;font-size:13px;color:#1a202c;font-weight:500">${c.n}</div>
+      <input type="number" value="${c.min}" onchange="updateClubDist('${c.id}','min',this.value)"
+        style="width:55px;padding:6px;border-radius:8px;border:1.5px solid #dde2e8;font-size:12px;text-align:center;font-family:Outfit,sans-serif">
+      <span style="font-size:11px;color:#9aa5b4">–</span>
+      <input type="number" value="${c.max}" onchange="updateClubDist('${c.id}','max',this.value)"
+        style="width:55px;padding:6px;border-radius:8px;border:1.5px solid #dde2e8;font-size:12px;text-align:center;font-family:Outfit,sans-serif">
+      <span style="font-size:11px;color:#9aa5b4">m</span>
+    </div>`).join('');
+
+  const premioOpts = Object.entries(PREMI).map(([k,v])=>
+    `<button onclick="setPremio('${k}')" style="flex:1;padding:10px 6px;border-radius:10px;border:2px solid ${premioFinale===k?'#1a3d2b':'#dde2e8'};background:${premioFinale===k?'#d8f3dc':'#fff'};font-size:20px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <span>${v.emoji}</span>
+      <span style="font-size:10px;font-weight:600;color:#1a202c">${v.label}</span>
+    </button>`
+  ).join('');
+
+  el.innerHTML=`<div style="background:#fff;border-radius:22px 22px 0 0;width:100%;max-height:88dvh;overflow-y:auto;padding-bottom:24px">
+    <div style="width:38px;height:4px;background:#dde2e8;border-radius:2px;margin:12px auto 8px"></div>
+    <div style="padding:4px 16px 14px;border-bottom:1px solid #f0f4f2;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:17px;font-weight:700;color:#1a3d2b">⚙️ Impostazioni</div>
+      <button onclick="document.getElementById('settings-modal').style.display='none'" style="background:#f0f4f2;border:none;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;color:#4a5568;cursor:pointer;font-family:Outfit,sans-serif">Chiudi</button>
+    </div>
+
+    <div style="padding:16px">
+
+      <!-- USERNAME -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Il tuo nome</div>
+        <input id="username-input" type="text" value="${userName}" placeholder="Il tuo nome"
+          oninput="userName=this.value;localStorage.setItem('golf_username',this.value)"
+          style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #dde2e8;font-size:15px;font-family:Outfit,sans-serif;color:#1a202c">
+      </div>
+
+      <!-- PREMIO FINALE -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Premio di fine giro</div>
+        <div style="display:flex;gap:8px">${premioOpts}</div>
+      </div>
+
+      <!-- VOCE -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Voce</div>
+        <select onchange="setVoice(this.value)" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #dde2e8;font-size:13px;font-family:Outfit,sans-serif;background:#fff;color:#1a202c;margin-bottom:8px">
+          ${voiceOpts}
+        </select>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1">
+            <div style="font-size:11px;color:#9aa5b4;margin-bottom:4px">Velocita</div>
+            <input type="range" min="0.5" max="1.5" step="0.05" value="${ttsRate}"
+              oninput="ttsRate=parseFloat(this.value)"
+              style="width:100%;accent-color:#1a3d2b">
+          </div>
+          <div style="flex:1">
+            <div style="font-size:11px;color:#9aa5b4;margin-bottom:4px">Tono</div>
+            <input type="range" min="0.5" max="2.0" step="0.1" value="${ttsPitch}"
+              oninput="ttsPitch=parseFloat(this.value)"
+              style="width:100%;accent-color:#1a3d2b">
+          </div>
+        </div>
+        <button onclick="testSpeak('Ciao '+userName+', benvenuto su Ci Pensa Gio!')"
+          style="margin-top:8px;width:100%;padding:10px;background:#f0f4f2;border:none;border-radius:10px;font-size:13px;font-weight:500;color:#1a3d2b;cursor:pointer;font-family:Outfit,sans-serif">
+          🔊 Prova voce
+        </button>
+      </div>
+
+      <!-- DISTANZE MAZZE -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Distanze mazze (min – max metri)</div>
+        <div style="background:#f8fafb;border-radius:10px;padding:12px">
+          <!-- Drive -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="flex:1;font-size:13px;color:#1a202c;font-weight:500">Drive</div>
+            <input type="number" value="${CLUBS[0].min}" onchange="updateClubDist('drive','min',this.value)"
+              style="width:55px;padding:6px;border-radius:8px;border:1.5px solid #dde2e8;font-size:12px;text-align:center;font-family:Outfit,sans-serif">
+            <span style="font-size:11px;color:#9aa5b4">–</span>
+            <input type="number" value="${CLUBS[0].max}" onchange="updateClubDist('drive','max',this.value)"
+              style="width:55px;padding:6px;border-radius:8px;border:1.5px solid #dde2e8;font-size:12px;text-align:center;font-family:Outfit,sans-serif">
+            <span style="font-size:11px;color:#9aa5b4">m</span>
+          </div>
+          ${clubRows}
+        </div>
+        <button onclick="saveClubDists()"
+          style="margin-top:10px;width:100%;padding:12px;background:#1a3d2b;border:none;border-radius:10px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;font-family:Outfit,sans-serif">
+          💾 Salva distanze mazze
+        </button>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function setPremio(key){
+  premioFinale=key;
+  localStorage.setItem('golf_premio',key);
+  renderSettings(document.getElementById('settings-modal'));
+}
+
+function updateClubDist(id,field,val){
+  const c=CLUBS.find(x=>x.id===id);
+  if(c)c[field]=parseInt(val)||c[field];
+}
+
+function saveClubDists(){
+  const data=CLUBS.map(c=>({id:c.id,min:c.min,max:c.max,p:c.p}));
+  localStorage.setItem('golf_clubs',JSON.stringify(data));
+  showToast('Distanze mazze salvate!');
+}
+
+function loadClubDists(){
+  try{
+    const raw=localStorage.getItem('golf_clubs');
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    data.forEach(d=>{
+      const c=CLUBS.find(x=>x.id===d.id);
+      if(c){c.min=d.min;c.max=d.max;}
+    });
+  }catch(e){}
 }
 
 </script>

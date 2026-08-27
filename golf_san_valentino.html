@@ -248,10 +248,20 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
   <img src="https://giovigilante.github.io/caddygio/splash.jpg" alt="Ci Pensa Gio" 
     style="width:100%;height:100%;object-fit:cover;object-position:top">
   <div style="position:absolute;bottom:0;left:0;right:0;padding:30px 24px 50px;background:linear-gradient(transparent,rgba(0,0,0,.75));display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div style="width:100%;max-width:320px;background:rgba(0,0,0,.5);border-radius:16px;padding:16px;margin-bottom:4px">
+      <div style="font-size:12px;color:rgba(255,255,255,.7);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;text-align:center">Il tuo HCP di gioco</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px">
+        <button onclick="changeHCP(-1)" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:24px;cursor:pointer;font-family:Outfit,sans-serif;display:flex;align-items:center;justify-content:center">−</button>
+        <div style="text-align:center">
+          <div id="hcp-display" style="font-size:42px;font-weight:700;color:#f4d03f;font-family:DM Mono,monospace;line-height:1">21</div>
+        </div>
+        <button onclick="changeHCP(+1)" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;font-size:24px;cursor:pointer;font-family:Outfit,sans-serif;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+    </div>
     <button onclick="startApp()" style="width:100%;max-width:320px;background:linear-gradient(135deg,#c9a227,#f4d03f);border:none;border-radius:20px;padding:18px;font-size:20px;font-weight:700;color:#1a1a2e;cursor:pointer;font-family:Outfit,sans-serif;letter-spacing:0.3px;box-shadow:0 4px 20px rgba(244,208,63,.4)">
       ⛳ Inizia il giro
     </button>
-    <div style="font-size:12px;color:rgba(255,255,255,.6)">HCP 21 · Par 72 · Tee Giallo · San Valentino</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6)">Par 72 · Tee Giallo · San Valentino</div>
   </div>
 </div>
 
@@ -263,7 +273,7 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
       <div id="gmpill" class="mode-pill play" onclick="toggleGlobalMode()">⛳ Gara in corso</div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <span style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">Par 72 · HCP 21</span>
+      <span id="hcp-chip" style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">Par 72 · HCP 21</span>
       <span style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">+2 colpi: B.5 B.11 B.1</span>
       <span style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 8px;font-size:10px;font-weight:500">🛰️ GPS attivo</span>
     </div>
@@ -461,6 +471,8 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
 </div>
 
 <script>
+let HCP = parseInt(localStorage.getItem("golf_hcp")||"21");
+
 let ttsEnabled = true;
 let ttsVoice = null;
 let ttsRate = 0.95;
@@ -517,7 +529,7 @@ const HD=[
   {n:15,par:5,dist:459,si:12}, {n:16,par:3,dist:113,si:17},
   {n:17,par:4,dist:344,si:5},  {n:18,par:5,dist:445,si:13},
 ];
-const extra=si=>Math.floor(21/18)+(si<=(21%18)?1:0);
+const extra=si=>Math.floor(HCP/18)+(si<=(HCP%18)?1:0);
 const netpar=h=>h.par+extra(h.si);
 
 function autoPick(dist,pen){
@@ -1833,6 +1845,7 @@ body{font-family:'Outfit',Arial,sans-serif;background:#fff;color:#1a202c;padding
 // ═══════════════════════════════════════
 try {
   const _loaded=loadState();
+  updateHCPDisplay();
   loadFlagPositions();
   renderList();
   addResetBtn();
@@ -2080,7 +2093,33 @@ function updateMapGpsPosition(){
 function startApp(){
   const s=document.getElementById('splash');
   if(s){s.style.opacity='0';setTimeout(()=>s.style.display='none',500);}
+  // Salva HCP e ricalcola tutto con HCP corrente
+  localStorage.setItem('golf_hcp', HCP);
+  S.forEach((h,i) => {
+    h.planShots = genShots(h);
+    h.playShots = null;
+    h.manualTotal = null;
+  });
+  renderList();
+  saveState();
 }
+
+// ═══ GESTIONE HCP ═══
+function changeHCP(delta){
+  HCP = Math.max(0, Math.min(36, HCP + delta));
+  localStorage.setItem('golf_hcp', HCP);
+  updateHCPDisplay();
+}
+
+function updateHCPDisplay(){
+  const disp = document.getElementById('hcp-display');
+  const detail = document.getElementById('hcp-detail');
+  if(disp) disp.textContent = HCP;
+
+}
+
+
+
 </script>
 </body>
 </html>

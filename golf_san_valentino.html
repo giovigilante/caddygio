@@ -472,6 +472,8 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
 
 <script>
 let HCP = parseInt(localStorage.getItem("golf_hcp")||"21");
+let gameStartTime = null;
+let gameTimerInterval = null;
 
 let ttsEnabled = true;
 let ttsVoice = null;
@@ -1253,6 +1255,7 @@ function savePlan(){
 function saveHole(){
   S[curHole].saved=true;
   saveState();
+  setTimeout(checkGameComplete, 800);
   speakHoleSaved();
   const btn=document.getElementById('savebtn');
   if(btn){btn.textContent='✓ Salvato!';btn.style.background='var(--gm)';
@@ -2100,6 +2103,9 @@ function startApp(){
     h.playShots = null;
     h.manualTotal = null;
   });
+  // Avvia timer gara
+  gameStartTime = Date.now();
+  localStorage.setItem('golf_start_time', gameStartTime);
   renderList();
   saveState();
 }
@@ -2119,6 +2125,131 @@ function updateHCPDisplay(){
 }
 
 
+
+
+// ═══════════════════════════════════════
+// TIMER E SCHERMATA FINALE
+// ═══════════════════════════════════════
+function getElapsedTime(){
+  if(!gameStartTime) return '–';
+  const ms = Date.now() - gameStartTime;
+  const h = Math.floor(ms/3600000);
+  const m = Math.floor((ms%3600000)/60000);
+  const s = Math.floor((ms%60000)/1000);
+  return (h>0?h+'h ':'')+m+'m '+s+'s';
+}
+
+function getElapsedMinutes(){
+  if(!gameStartTime) return 0;
+  return Math.round((Date.now()-gameStartTime)/60000);
+}
+
+function checkGameComplete(){
+  const saved = S.filter(h=>h.saved).length;
+  if(saved === 18) showFinalScreen();
+}
+
+function showFinalScreen(){
+  // Calcola totali
+  const totLordo = S.reduce((s,_,i)=>s+calcTotal(i),0);
+  const totStab = S.reduce((s,_,i)=>s+calcStab(i),0);
+  const totPar = S.reduce((s,h)=>s+h.par,0); // 72
+  const nettoVsPar = totLordo - totPar;
+  const mins = getElapsedMinutes();
+  const elapsed = getElapsedTime();
+  const ore = Math.floor(mins/60);
+  const minuti = mins%60;
+  const tempoStr = ore>0?ore+'h '+minuti+'m':minuti+' minuti';
+
+  // Birra emoji in base al punteggio
+  const birre = totStab >= 36 ? '🍺🍺🍺' : totStab >= 30 ? '🍺🍺' : '🍺';
+
+  let el = document.getElementById('final-screen');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'final-screen';
+    document.body.appendChild(el);
+  }
+  el.style.cssText = 'position:fixed;inset:0;z-index:500;font-family:Outfit,sans-serif;overflow-y:auto';
+  el.innerHTML = `
+    <div style="min-height:100dvh;background:linear-gradient(160deg,#0a2e1a,#1a5c35,#0d3d1f);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center">
+
+      <!-- Titolo -->
+      <div style="font-size:42px;margin-bottom:8px">⛳🏆</div>
+      <div style="font-size:26px;font-weight:700;color:#fff;margin-bottom:4px">Giro Completato!</div>
+      <div style="font-size:13px;color:#52b788;margin-bottom:32px">San Valentino Golf Club · HCP ${HCP}</div>
+
+      <!-- Scheda riassunto -->
+      <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:24px;width:100%;max-width:340px;margin-bottom:24px">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div style="background:rgba(255,255,255,.08);border-radius:14px;padding:14px">
+            <div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Colpi Lordo</div>
+            <div style="font-size:36px;font-weight:700;color:#fff;font-family:DM Mono,monospace;line-height:1">${totLordo}</div>
+            <div style="font-size:11px;color:${nettoVsPar>0?'#fc8181':'#52b788'};margin-top:4px">${nettoVsPar>0?'+':''}${nettoVsPar} vs Par ${totPar}</div>
+          </div>
+          <div style="background:rgba(244,208,63,.15);border:1px solid rgba(244,208,63,.3);border-radius:14px;padding:14px">
+            <div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Stableford</div>
+            <div style="font-size:36px;font-weight:700;color:#f4d03f;font-family:DM Mono,monospace;line-height:1">${totStab}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">punti</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div style="background:rgba(255,255,255,.06);border-radius:14px;padding:14px">
+            <div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Colpi Netti</div>
+            <div style="font-size:28px;font-weight:700;color:#52b788;font-family:DM Mono,monospace;line-height:1">${totLordo - HCP}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">lordo − HCP ${HCP}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.06);border-radius:14px;padding:14px">
+            <div style="font-size:11px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Tempo</div>
+            <div style="font-size:22px;font-weight:700;color:#fff;font-family:DM Mono,monospace;line-height:1">${tempoStr}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">sul campo</div>
+          </div>
+        </div>
+
+        <!-- Dettaglio out/in -->
+        <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:12px;display:flex;justify-content:space-around">
+          <div style="text-align:center">
+            <div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">OUT (1-9)</div>
+            <div style="font-size:18px;font-weight:700;color:#fff;font-family:DM Mono,monospace">${S.slice(0,9).reduce((_,x,i)=>_+calcTotal(i),0)}</div>
+          </div>
+          <div style="width:1px;background:rgba(255,255,255,.15)"></div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">IN (10-18)</div>
+            <div style="font-size:18px;font-weight:700;color:#fff;font-family:DM Mono,monospace">${S.slice(9).reduce((_,x,i)=>_+calcTotal(i+9),0)}</div>
+          </div>
+          <div style="width:1px;background:rgba(255,255,255,.15)"></div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">Par campo</div>
+            <div style="font-size:18px;font-weight:700;color:#fff;font-family:DM Mono,monospace">${totPar}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BIRRA -->
+      <div style="background:rgba(244,208,63,.15);border:2px solid #f4d03f;border-radius:20px;padding:20px 28px;margin-bottom:28px;max-width:340px;width:100%">
+        <div style="font-size:40px;margin-bottom:8px">${birre}</div>
+        <div style="font-size:22px;font-weight:800;color:#f4d03f;letter-spacing:-0.3px">Ora ci sta una Birra!!</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px">${totStab>=36?'Ottimo giro! Ben giocato!':totStab>=30?'Buon giro! Meriti il riposo!':'Il campo era difficile oggi...'}</div>
+      </div>
+
+      <!-- Pulsanti -->
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px">
+        <button onclick="document.getElementById('final-screen').style.display='none'" 
+          style="padding:14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:14px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif">
+          📊 Vedi scorecard
+        </button>
+        <button onclick="resetAll()" 
+          style="padding:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:14px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:Outfit,sans-serif">
+          🏌️ Nuovo giro
+        </button>
+      </div>
+
+      <div style="margin-top:24px;font-size:11px;color:rgba(255,255,255,.3)">Ci Pensa Gio' · San Valentino Golf Club</div>
+    </div>
+  `;
+}
 
 </script>
 </body>

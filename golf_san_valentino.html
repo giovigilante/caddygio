@@ -473,9 +473,8 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
 
 <script>
 let HCP = parseInt(localStorage.getItem("golf_hcp")||"21");
-let LANG = localStorage.getItem("golf_lang")||"it";
-
-const T = {
+// LANG REMOVED
+const T_DISABLED = {
   it: {
     appTitle: "San Valentino",
     appSub: "Golf Club · Castellarano (RE)",
@@ -587,7 +586,7 @@ const T = {
     lingua: "Language",
   }
 };
-function t(key){ return (T[LANG]||T.it)[key]||T.it[key]||key; }
+
 let userName = localStorage.getItem("golf_username")||"Giocatore";
 let premioFinale = localStorage.getItem("golf_premio")||"birra";
 const PREMI = {
@@ -2439,15 +2438,6 @@ function renderSettings(el){
           style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #dde2e8;font-size:15px;font-family:Outfit,sans-serif;color:#1a202c">
       </div>
 
-      <!-- LINGUA -->
-      <div style="margin-bottom:20px">
-        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Language / Lingua</div>
-        <div style="display:flex;gap:8px">
-          <button onclick="setLang('it')" id="lang-btn-it" style="flex:1;padding:11px;border-radius:10px;border:2px solid #dde2e8;background:#fff;font-size:15px;cursor:pointer;font-family:Outfit,sans-serif">🇮🇹 Italiano</button>
-          <button onclick="setLang('en')" id="lang-btn-en" style="flex:1;padding:11px;border-radius:10px;border:2px solid #dde2e8;background:#fff;font-size:15px;cursor:pointer;font-family:Outfit,sans-serif">🇬🇧 English</button>
-        </div>
-      </div>
-
       <!-- PREMIO FINALE -->
       <div style="margin-bottom:20px">
         <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Premio di fine giro</div>
@@ -2536,22 +2526,7 @@ function loadClubDists(){
 }
 
 
-// ═══ LINGUA ═══
-function setLang(lang){
-  LANG = lang;
-  localStorage.setItem('golf_lang', lang);
-  location.reload();
-}
 
-function applyLang(){
-  const el=document.getElementById('btn-segna-colpo');
-  if(el)el.textContent=t('segnaColpo');
-  // Evidenzia lingua attiva nei pulsanti
-  const bIt=document.getElementById('lang-btn-it');
-  const bEn=document.getElementById('lang-btn-en');
-  if(bIt){bIt.style.borderColor=LANG==='it'?'#1a3d2b':'#dde2e8';bIt.style.background=LANG==='it'?'#d8f3dc':'#fff';bIt.style.fontWeight=LANG==='it'?'700':'400';}
-  if(bEn){bEn.style.borderColor=LANG==='en'?'#1a3d2b':'#dde2e8';bEn.style.background=LANG==='en'?'#d8f3dc':'#fff';bEn.style.fontWeight=LANG==='en'?'700':'400';}
-}
 
 </script>
 </body>

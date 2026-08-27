@@ -473,6 +473,121 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
 
 <script>
 let HCP = parseInt(localStorage.getItem("golf_hcp")||"21");
+let LANG = localStorage.getItem("golf_lang")||"it";
+
+const T = {
+  it: {
+    appTitle: "San Valentino",
+    appSub: "Golf Club · Castellarano (RE)",
+    gara: "⛳ Gara in corso",
+    piano: "📋 Pianificazione",
+    gpsActive: "🛰️ GPS attivo",
+    hcpLabel: "Il tuo HCP di gioco",
+    startBtn: "⛳ Inizia il giro",
+    tabGps: "🛰️ GPS",
+    tabPiano: "📋 Piano",
+    tabGara: "⛳ Gara",
+    segnaTee: "🏌️ Segna tee",
+    segnaBandiera: "🚩 Segna bandiera",
+    segnaColpo: "📍 Segna colpo — GPS",
+    resetBuca: "🗑️ Reset buca",
+    leggiDist: "🔊 Leggi distanza",
+    buca: "Buca",
+    bucaCorrente: "Buca corrente",
+    distBandiera: "📍 Distanza dalla bandiera",
+    inAttesa: "In attesa del segnale GPS...",
+    mazzaConsigliata: "Mazza consigliata",
+    prossimoColpo: "📍 Prossimo colpo",
+    distTotale: "🚩 Distanza totale buca",
+    ultimoColpo: "📏 Ultimo colpo",
+    precGps: "🎯 Precisione GPS",
+    colpiTracciati: "Colpi tracciati",
+    giroCompletato: "Giro Completato!",
+    colpiLordo: "Colpi Lordo",
+    stableford: "Stableford",
+    colpiNetti: "Colpi Netti",
+    tempo: "Tempo",
+    sulCampo: "sul campo",
+    nuovoGiro: "🏌️ Nuovo giro",
+    vediScorecard: "📊 Vedi scorecard",
+    out: "OUT (1-9)",
+    inn: "IN (10-18)",
+    parCampo: "Par campo",
+    impostazioni: "⚙️ Impostazioni",
+    tuoNome: "Il tuo nome",
+    premioFinale: "Premio di fine giro",
+    voce: "Voce",
+    velocita: "Velocita",
+    tono: "Tono",
+    provaVoce: "🔊 Prova voce",
+    distMazze: "Distanze mazze (min – max metri)",
+    salvaDistanze: "💾 Salva distanze mazze",
+    settingsVoiceNote: "💡 La voce si imposta dalle Impostazioni Samsung → Accessibilità → TalkBack → Da testo a voce → Motore preferito.",
+    ottGiro: "Ottimo giro! Ben giocato!",
+    buonGiro: "Buon giro! Meriti il riposo!",
+    campoHard: "Il campo era difficile oggi...",
+    salvaStrategia: "💾 Salva strategia",
+    libreria: "📚 Strategie",
+    stampa: "🖨️ PDF",
+    lingua: "Lingua",
+  },
+  en: {
+    appTitle: "San Valentino",
+    appSub: "Golf Club · Castellarano (RE)",
+    gara: "⛳ Round in progress",
+    piano: "📋 Planning",
+    gpsActive: "🛰️ GPS active",
+    hcpLabel: "Your playing HCP",
+    startBtn: "⛳ Start round",
+    tabGps: "🛰️ GPS",
+    tabPiano: "📋 Plan",
+    tabGara: "⛳ Round",
+    segnaTee: "🏌️ Mark tee",
+    segnaBandiera: "🚩 Mark flag",
+    segnaColpo: "📍 Mark shot — GPS",
+    resetBuca: "🗑️ Reset hole",
+    leggiDist: "🔊 Read distance",
+    buca: "Hole",
+    bucaCorrente: "Current hole",
+    distBandiera: "📍 Distance to flag",
+    inAttesa: "Waiting for GPS signal...",
+    mazzaConsigliata: "Suggested club",
+    prossimoColpo: "📍 Next shot",
+    distTotale: "🚩 Total hole distance",
+    ultimoColpo: "📏 Last shot",
+    precGps: "🎯 GPS accuracy",
+    colpiTracciati: "Tracked shots",
+    giroCompletato: "Round Complete!",
+    colpiLordo: "Gross Strokes",
+    stableford: "Stableford",
+    colpiNetti: "Net Strokes",
+    tempo: "Time",
+    sulCampo: "on the course",
+    nuovoGiro: "🏌️ New round",
+    vediScorecard: "📊 View scorecard",
+    out: "OUT (1-9)",
+    inn: "IN (10-18)",
+    parCampo: "Course par",
+    impostazioni: "⚙️ Settings",
+    tuoNome: "Your name",
+    premioFinale: "End of round reward",
+    voce: "Voice",
+    velocita: "Speed",
+    tono: "Pitch",
+    provaVoce: "🔊 Test voice",
+    distMazze: "Club distances (min – max metres)",
+    salvaDistanze: "💾 Save club distances",
+    settingsVoiceNote: "💡 Voice is set in Samsung Settings → Accessibility → TalkBack → Text to speech → Preferred engine.",
+    ottGiro: "Great round! Well played!",
+    buonGiro: "Good round! You deserve a rest!",
+    campoHard: "The course was tough today...",
+    salvaStrategia: "💾 Save strategy",
+    libreria: "📚 Strategies",
+    stampa: "🖨️ PDF",
+    lingua: "Language",
+  }
+};
+function t(key){ return (T[LANG]||T.it)[key]||T.it[key]||key; }
 let userName = localStorage.getItem("golf_username")||"Giocatore";
 let premioFinale = localStorage.getItem("golf_premio")||"birra";
 const PREMI = {
@@ -486,8 +601,8 @@ let gameTimerInterval = null;
 
 let ttsEnabled = true;
 let ttsVoice = null;
-let ttsRate = 0.95;
-let ttsPitch = 1.0;
+let ttsRate = parseFloat(localStorage.getItem("golf_tts_rate")||"0.95");
+let ttsPitch = parseFloat(localStorage.getItem("golf_tts_pitch")||"1.0");
 
 // ═══════════════════════════════════════
 // MAZZE
@@ -2324,6 +2439,15 @@ function renderSettings(el){
           style="width:100%;padding:12px;border-radius:10px;border:1.5px solid #dde2e8;font-size:15px;font-family:Outfit,sans-serif;color:#1a202c">
       </div>
 
+      <!-- LINGUA -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Language / Lingua</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="setLang('it')" id="lang-btn-it" style="flex:1;padding:11px;border-radius:10px;border:2px solid #dde2e8;background:#fff;font-size:15px;cursor:pointer;font-family:Outfit,sans-serif">🇮🇹 Italiano</button>
+          <button onclick="setLang('en')" id="lang-btn-en" style="flex:1;padding:11px;border-radius:10px;border:2px solid #dde2e8;background:#fff;font-size:15px;cursor:pointer;font-family:Outfit,sans-serif">🇬🇧 English</button>
+        </div>
+      </div>
+
       <!-- PREMIO FINALE -->
       <div style="margin-bottom:20px">
         <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Premio di fine giro</div>
@@ -2333,20 +2457,20 @@ function renderSettings(el){
       <!-- VOCE -->
       <div style="margin-bottom:20px">
         <div style="font-size:11px;font-weight:700;color:#9aa5b4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Voce</div>
-        <select onchange="setVoice(this.value)" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #dde2e8;font-size:13px;font-family:Outfit,sans-serif;background:#fff;color:#1a202c;margin-bottom:8px">
-          ${voiceOpts}
-        </select>
+        <div style="background:#f0f4f2;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#4a5568;line-height:1.5">
+          💡 La voce si imposta dalle <strong>Impostazioni Samsung → Accessibilità → TalkBack → Da testo a voce → Motore preferito</strong>. Seleziona Google per avere più voci disponibili.
+        </div>
         <div style="display:flex;gap:8px">
           <div style="flex:1">
             <div style="font-size:11px;color:#9aa5b4;margin-bottom:4px">Velocita</div>
             <input type="range" min="0.5" max="1.5" step="0.05" value="${ttsRate}"
-              oninput="ttsRate=parseFloat(this.value)"
+              oninput="ttsRate=parseFloat(this.value);localStorage.setItem('golf_tts_rate',this.value)"
               style="width:100%;accent-color:#1a3d2b">
           </div>
           <div style="flex:1">
             <div style="font-size:11px;color:#9aa5b4;margin-bottom:4px">Tono</div>
             <input type="range" min="0.5" max="2.0" step="0.1" value="${ttsPitch}"
-              oninput="ttsPitch=parseFloat(this.value)"
+              oninput="ttsPitch=parseFloat(this.value);localStorage.setItem('golf_tts_pitch',this.value)"
               style="width:100%;accent-color:#1a3d2b">
           </div>
         </div>
@@ -2409,6 +2533,24 @@ function loadClubDists(){
       if(c){c.min=d.min;c.max=d.max;}
     });
   }catch(e){}
+}
+
+
+// ═══ LINGUA ═══
+function setLang(lang){
+  LANG = lang;
+  localStorage.setItem('golf_lang', lang);
+  location.reload();
+}
+
+function applyLang(){
+  const el=document.getElementById('btn-segna-colpo');
+  if(el)el.textContent=t('segnaColpo');
+  // Evidenzia lingua attiva nei pulsanti
+  const bIt=document.getElementById('lang-btn-it');
+  const bEn=document.getElementById('lang-btn-en');
+  if(bIt){bIt.style.borderColor=LANG==='it'?'#1a3d2b':'#dde2e8';bIt.style.background=LANG==='it'?'#d8f3dc':'#fff';bIt.style.fontWeight=LANG==='it'?'700':'400';}
+  if(bEn){bEn.style.borderColor=LANG==='en'?'#1a3d2b':'#dde2e8';bEn.style.background=LANG==='en'?'#d8f3dc':'#fff';bEn.style.fontWeight=LANG==='en'?'700':'400';}
 }
 
 </script>

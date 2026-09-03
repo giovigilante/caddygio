@@ -1500,9 +1500,9 @@ function renderList(){
     document.getElementById('ts').textContent=S.reduce((s,_,i)=>s+calcPlanStab(i),0)+'pt';
     document.getElementById('td').textContent='Stima piano';
   } else {
-    const pLordo=S.filter(h=>h.saved).reduce((s,_,i)=>s+(h.saved?calcTotal(i):0),0);
+    const pLordo=S.filter((_,i)=>S[i].saved).reduce((s,_,i)=>s+calcTotal(i),0);
     document.getElementById('tl').textContent=done>0?pLordo:'–';
-    document.getElementById('ts').textContent=done>0?S.filter(h=>h.saved).reduce((s,h,i)=>s+calcStab(i),0)+'pt':'–';
+    document.getElementById('ts').textContent=done>0?S.filter(h=>h.saved).reduce((s,_,i)=>s+calcStab(i),0)+'pt':'–';
     document.getElementById('td').textContent=done+'/18';
   }
 }

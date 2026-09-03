@@ -329,6 +329,12 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
           <span class="dist-main-unit">m</span>
         </div>
         <div class="dist-main-sub" id="dist-flag-sub">In attesa del segnale GPS...</div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:10px" id="mc-section" style="display:none">
+          <div>
+            <div style="font-size:10px;opacity:.55;text-transform:uppercase;letter-spacing:.8px">MC</div>
+            <div style="font-size:32px;font-weight:700;color:#f4d03f;line-height:1" id="mc-club-name">—</div>
+          </div>
+        </div>
         <div class="dist-suggestion" id="dist-suggestion" style="display:none">
           <div class="dist-sug-label">Mazza consigliata</div>
           <div class="dist-sug-club" id="sug-club">–</div>
@@ -389,22 +395,41 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--g50);colo
         </div>
       </div>
       <!-- PULSANTI GPS -->
-      <div class="gps-actions">
-        <button class="gps-btn primary" onclick="markShot()">
-          <span class="gbi">📍</span>Segna colpo
+      <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0 10px">
+
+        <button onclick="markShot()" style="width:100%;padding:22px;background:#1a7a4e;border:none;border-radius:14px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;display:flex;align-items:center;justify-content:center;gap:14px">
+          <span style="font-size:34px">📍</span>
+          <span style="font-size:26px;font-weight:700">Segna Colpo</span>
         </button>
-        <button class="gps-btn secondary" onclick="speakGpsDistance()">
-          <span class="gbi">🔊</span>Leggi distanza
+
+        <button onclick="undoLastShot()" style="width:100%;padding:18px;background:#ffffff;border:none;border-radius:14px;color:#1a1a1a;cursor:pointer;font-family:Outfit,sans-serif;display:flex;align-items:center;justify-content:center;gap:12px">
+          <span style="font-size:30px">↩️</span>
+          <span style="font-size:22px;font-weight:700">Annulla ultimo colpo</span>
         </button>
-        <button class="gps-btn secondary" onclick="markFlag()">
-          <span class="gbi">🚩</span>Segna bandiera
+
+        <button onclick="markFlag()" style="width:100%;padding:22px;background:#c9a227;border:none;border-radius:14px;color:#1a1a1a;cursor:pointer;font-family:Outfit,sans-serif;display:flex;align-items:center;justify-content:center;gap:14px">
+          <span style="font-size:34px">🚩</span>
+          <span style="font-size:26px;font-weight:700">Segna Bandiera</span>
         </button>
-        <button class="gps-btn secondary" onclick="markTee()">
-          <span class="gbi">🏌️</span>Segna tee
-        </button>
-        <button class="gps-btn danger" onclick="clearShots()">
-          <span class="gbi">🗑️</span>Reset buca
-        </button>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button onclick="addPenalty(curHole,1,'acqua')" style="padding:18px 10px;background:#1a4a8a;border:none;border-radius:14px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;display:flex;flex-direction:column;align-items:center;gap:7px">
+            <span style="font-size:34px">💧</span>
+            <span style="font-size:20px;font-weight:700">Acqua</span>
+            <span style="font-size:14px;font-weight:500;opacity:.85">+1 colpo</span>
+          </button>
+          <button onclick="addPenalty(curHole,2,'OB')" style="padding:18px 10px;background:#8a1a1a;border:none;border-radius:14px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;display:flex;flex-direction:column;align-items:center;gap:7px">
+            <span style="font-size:34px">🚫</span>
+            <span style="font-size:20px;font-weight:700">OB / Persa</span>
+            <span style="font-size:14px;font-weight:500;opacity:.85">+2 colpi</span>
+          </button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 2px 0">
+          <button onclick="markTee()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 16px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;font-family:Outfit,sans-serif">🏌️ Segna tee</button>
+          <button onclick="clearShots()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);border-radius:10px;padding:10px 16px;color:#fc8181;font-size:14px;font-weight:500;cursor:pointer;font-family:Outfit,sans-serif">🗑️ Reset buca</button>
+        </div>
+
       </div>
     </div>
 
@@ -590,10 +615,9 @@ const T_DISABLED = {
 let userName = localStorage.getItem("golf_username")||"Giocatore";
 let premioFinale = localStorage.getItem("golf_premio")||"birra";
 const PREMI = {
-  birra:    {label:'Birra',       emoji:'🍺', msg:'Ora ci sta una Birra!!'},
-  ginlemon: {label:'Gin Lemon',   emoji:'🍋', msg:'Ora ci sta un Gin Lemon!!'},
-  gintonic: {label:'Gin Tonic',   emoji:'🫙', msg:'Ora ci sta un Gin Tonic!!'},
-  bollicine:{label:'Bollicine',   emoji:'🥂', msg:'Ora ci stanno le Bollicine!!'},
+  birra:    {label:'Birra',     emoji:'🍺', msg:'Ora ci sta una Birra!!'},
+  ginlemon: {label:'Gin Lemon', emoji:'🍸', msg:'Ora ci sta un Gin Lemon!!'},
+  bollicine:{label:'Bollicine', emoji:'🥂', msg:'Ora ci stanno le Bollicine!!'},
 };
 let gameStartTime = null;
 let gameTimerInterval = null;
@@ -889,6 +913,11 @@ function updateGpsDistances(){
       sugClub.textContent=`${cl.n}`;
       sugWhy.textContent=`Gittata ${cl.min}–${cl.max}m · Precisione ${Math.round(cl.p*100)}%`;
     }
+    // Aggiorna MC grande
+    const mcEl=document.getElementById('mc-club-name');
+    const mcSec=document.getElementById('mc-section');
+    if(mcEl&&cl){mcEl.textContent=cl.n;}
+    if(mcSec){mcSec.style.display='flex';}
     // Bussola
     const b=bearing(currentPos.lat,currentPos.lng,g.flagPos.lat,g.flagPos.lng);
     const arrow=document.getElementById('compass-arrow');
@@ -1121,7 +1150,7 @@ function updateSaveBar(){
   const sb=document.getElementById('savebar');
   if(!sb)return;
   if(curTab==='gps'){
-    sb.innerHTML=`<button class="sbtn gps-btn-main" onclick="markShot()">📍 Segna colpo — GPS</button>`;
+    sb.innerHTML=`<button onclick="curHole>0?goHole(curHole-1):null" style="padding:13px 14px;background:rgba(26,61,43,.9);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;flex-shrink:0">← B.${curHole>0?S[curHole-1].n:'—'}</button><button onclick="markShot()" style="flex:1;margin:0 8px;padding:13px;background:#1a7a4e;border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif">📍 Segna Colpo</button><button onclick="curHole<17?goHole(curHole+1):null" style="padding:13px 14px;background:rgba(26,61,43,.9);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;flex-shrink:0">B.${curHole<17?S[curHole+1].n:'—'} →</button>`;
   } else if(curTab==='play'){
     sb.innerHTML=`
       <button class="sbtn secondary" onclick="resetToPlan(${curHole})">↺ Reset</button>
@@ -2298,9 +2327,9 @@ function showFinalScreen(){
     <div style="min-height:100dvh;background:linear-gradient(160deg,#0a2e1a,#1a5c35,#0d3d1f);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px;text-align:center">
 
       <!-- Titolo -->
-      <div style="font-size:42px;margin-bottom:8px">⛳🏆</div>
-      <div style="font-size:26px;font-weight:700;color:#fff;margin-bottom:4px">Giro Completato!</div>
-      <div style="font-size:13px;color:#52b788;margin-bottom:32px">San Valentino Golf Club · HCP ${HCP}</div>
+      <div style="font-size:62px;margin-bottom:10px">⛳🏆</div>
+      <div style="font-size:34px;font-weight:700;color:#fff;margin-bottom:6px">Giro Completato!</div>
+      <div style="font-size:15px;color:#52b788;margin-bottom:28px">San Valentino Golf Club · HCP ${HCP} · ${userName}</div>
 
       <!-- Scheda riassunto -->
       <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:24px;width:100%;max-width:340px;margin-bottom:24px">
@@ -2351,20 +2380,20 @@ function showFinalScreen(){
       </div>
 
       <!-- PREMIO -->
-      <div style="background:rgba(244,208,63,.15);border:2px solid #f4d03f;border-radius:20px;padding:20px 28px;margin-bottom:28px;max-width:340px;width:100%">
-        <div style="font-size:40px;margin-bottom:8px">${PREMI[premioFinale].emoji}${totStab>=36?PREMI[premioFinale].emoji:''}</div>
-        <div style="font-size:22px;font-weight:800;color:#f4d03f;letter-spacing:-0.3px">${PREMI[premioFinale].msg}</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px">${totStab>=36?'Ottimo giro '+userName+'! Ben giocato!':totStab>=30?'Buon giro '+userName+'! Meriti il riposo!':'Il campo era difficile oggi '+userName+'...'}</div>
+      <div style="background:rgba(244,208,63,.15);border:2px solid #f4d03f;border-radius:20px;padding:26px 28px;margin-bottom:24px;max-width:340px;width:100%">
+        <div style="font-size:70px;margin-bottom:12px">${PREMI[premioFinale].emoji}</div>
+        <div style="font-size:32px;font-weight:800;color:#f4d03f;letter-spacing:-0.3px;line-height:1.2">${PREMI[premioFinale].msg}</div>
+        <div style="font-size:16px;color:rgba(255,255,255,.7);margin-top:12px">${totStab>=36?'Ottimo giro '+userName+'!<br>Ben giocato!':totStab>=30?'Buon giro '+userName+'!<br>Meriti il riposo!':'Il campo era difficile oggi '+userName+'...'}</div>
       </div>
 
       <!-- Pulsanti -->
-      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px">
-        <button onclick="document.getElementById('final-screen').style.display='none'" 
-          style="padding:14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:14px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif">
+      <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:340px">
+        <button onclick="document.getElementById('final-screen').style.display='none'"
+          style="padding:18px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:14px;color:#fff;font-size:18px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif">
           📊 Vedi scorecard
         </button>
-        <button onclick="resetAll()" 
-          style="padding:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:14px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:Outfit,sans-serif">
+        <button onclick="resetAll()"
+          style="padding:18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:14px;color:rgba(255,255,255,.6);font-size:17px;cursor:pointer;font-family:Outfit,sans-serif">
           🏌️ Nuovo giro
         </button>
       </div>
@@ -2527,6 +2556,22 @@ function loadClubDists(){
 
 
 
+
+
+function undoLastShot(){
+  const g = S[curHole].gps;
+  if(!g.shots.length){
+    speak('Nessun colpo da annullare', true);
+    return;
+  }
+  g.shots.pop();
+  g.currentShotIdx = g.shots.length;
+  renderShotTrack();
+  updateGpsDistances();
+  if(navigator.vibrate) navigator.vibrate([40,20,40]);
+  speak('Ultimo colpo annullato', true);
+  saveState();
+}
 
 </script>
 </body>

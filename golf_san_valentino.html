@@ -558,24 +558,47 @@ const CLUBS=[
   {id:'w50',  n:'50°',      min:70, max:100,p:.80,g:'Wedge', i:'ci-W',l:'50'},
   {id:'w56',  n:'56°',      min:40, max:80, p:.80,g:'Wedge', i:'ci-W',l:'56'},
   {id:'w60',  n:'60°',      min:10, max:50, p:.80,g:'Wedge', i:'ci-W',l:'60'},
+  {id:'putt', n:'Putt',     min:0,  max:10, p:.75,g:'Putt',  i:'ci-P',l:'P'},
 ];
 const gc=id=>CLUBS.find(c=>c.id===id);
 const cmid=(c,pen)=>Math.round((c.min+c.max)/2*(pen?.95:1));
 const cprec=(c,pen)=>pen?c.p*.95:c.p;
 
 function suggestClub(dist){
-  if(dist<=0)return null;
-  const eligible=CLUBS.filter(c=>c.id!=='drive');
-  let best=null,bs=Infinity;
+  if(dist<=0) return null;
+  if(dist<=10) return CLUBS.find(c=>c.id==='putt');
+  const eligible = CLUBS.filter(c => c.id!=='drive' && c.id!=='putt');
+
+  // Trova mazze che coprono esattamente la distanza
+  let best = null, bs = Infinity;
   for(const c of eligible){
-    const m=(c.min+c.max)/2;
-    if(dist<=c.max*1.05&&dist>=c.min*.6){
-      const pp=c.id==='ib3'?.4:c.id==='leg3'?.1:0;
-      const sc=Math.abs(m-dist)/(m||1)+pp;
-      if(sc<bs){bs=sc;best=c;}
+    const m = (c.min + c.max) / 2;
+    if(dist <= c.max * 1.05 && dist >= c.min * 0.85){
+      // Penalizza ibrido3 e legno3 per bassa precisione
+      const pp = c.id==='ib3' ? 0.4 : c.id==='leg3' ? 0.2 : 0;
+      const sc = Math.abs(m - dist) / (m||1) + pp;
+      if(sc < bs){ bs = sc; best = c; }
     }
   }
-  return best||eligible.reduce((a,b)=>b.max>a.max?b:a);
+
+  // Fallback sicuro: se distanza < 10m usa 60 gradi
+  // se < 50m usa 60 gradi, < 80m usa 56 gradi, < 120m usa pitch
+  // NON usare mai legno o ibrido come fallback
+  if(!best){
+    if(dist <= 10)  best = CLUBS.find(c=>c.id==='putt');
+    else if(dist <= 50)  best = CLUBS.find(c=>c.id==='w60');
+    else if(dist <= 80)  best = CLUBS.find(c=>c.id==='w56');
+    else if(dist <= 100) best = CLUBS.find(c=>c.id==='w50');
+    else if(dist <= 120) best = CLUBS.find(c=>c.id==='pit');
+    else if(dist <= 130) best = CLUBS.find(c=>c.id==='f9');
+    else if(dist <= 145) best = CLUBS.find(c=>c.id==='f8');
+    else if(dist <= 160) best = CLUBS.find(c=>c.id==='f7');
+    else if(dist <= 170) best = CLUBS.find(c=>c.id==='f6');
+    else if(dist <= 185) best = CLUBS.find(c=>c.id==='f5');
+    else if(dist <= 190) best = CLUBS.find(c=>c.id==='ib4');
+    else best = CLUBS.find(c=>c.id==='leg3');
+  }
+  return best;
 }
 
 // ═══════════════════════════════════════
@@ -596,17 +619,34 @@ const extra=si=>Math.floor(HCP/18)+(si<=(HCP%18)?1:0);
 const netpar=h=>h.par+extra(h.si);
 
 function autoPick(dist,pen){
-  const f=pen?.95:1,el=CLUBS.filter(c=>c.id!=='drive');
+  const f=pen?.95:1;
+  const el=CLUBS.filter(c=>c.id!=='drive'&&c.id!=='putt');
   let best=null,bs=Infinity;
   for(const c of el){
     const em=((c.min+c.max)/2)*f;
-    if(dist<=c.max*f*1.1&&dist>=c.min*f*.6){
-      const pp=c.id==='ib3'?.4:c.id==='leg3'?.1:0;
+    if(dist<=c.max*f*1.05&&dist>=c.min*f*0.85){
+      const pp=c.id==='ib3'?.4:c.id==='leg3'?.2:0;
       const sc=Math.abs(em-dist)/(em||1)+pp;
       if(sc<bs){bs=sc;best=c;}
     }
   }
-  return best||el.reduce((a,b)=>b.max>a.max?b:a);
+  // Fallback sicuro senza legno come default
+  if(!best){
+    const adjDist=dist/f;
+    if(adjDist<=10)  best=CLUBS.find(c=>c.id==='putt');
+    else if(adjDist<=50)  best=CLUBS.find(c=>c.id==='w60');
+    else if(adjDist<=80)  best=CLUBS.find(c=>c.id==='w56');
+    else if(adjDist<=100) best=CLUBS.find(c=>c.id==='w50');
+    else if(adjDist<=120) best=CLUBS.find(c=>c.id==='pit');
+    else if(adjDist<=130) best=CLUBS.find(c=>c.id==='f9');
+    else if(adjDist<=145) best=CLUBS.find(c=>c.id==='f8');
+    else if(adjDist<=160) best=CLUBS.find(c=>c.id==='f7');
+    else if(adjDist<=170) best=CLUBS.find(c=>c.id==='f6');
+    else if(adjDist<=185) best=CLUBS.find(c=>c.id==='f5');
+    else if(adjDist<=190) best=CLUBS.find(c=>c.id==='ib4');
+    else best=CLUBS.find(c=>c.id==='leg3');
+  }
+  return best;
 }
 
 function genShots(h){

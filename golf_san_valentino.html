@@ -1107,10 +1107,11 @@ function updateSaveBar(){
     sb.innerHTML=`<button onclick="curHole>0?goHole(curHole-1):null" style="padding:13px 14px;background:rgba(26,61,43,.9);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;flex-shrink:0">← B.${curHole>0?S[curHole-1].n:'—'}</button><button onclick="markShot()" style="flex:1;margin:0 8px;padding:13px;background:#1a7a4e;border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:Outfit,sans-serif">📍 Segna Colpo</button><button onclick="curHole<17?goHole(curHole+1):null" style="padding:13px 14px;background:rgba(26,61,43,.9);border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;flex-shrink:0">B.${curHole<17?S[curHole+1].n:'—'} →</button>`;
   } else if(curTab==='play'){
     sb.innerHTML=`
-      <button class="sbtn secondary" onclick="resetToPlan(${curHole})">↺ Reset</button>
-      <button class="sbtn primary" id="savebtn" onclick="saveHole()">✓ Salva buca</button>`;
+      <button class="sbtn secondary" onclick="resetToPlan(${curHole})" style="flex:0 0 auto;padding:13px 12px;font-size:13px">↺</button>
+      <button class="sbtn primary" id="savebtn" onclick="saveHole()">✓ Salva buca</button>
+      <button class="sbtn secondary" onclick="openResetModal()" style="flex:0 0 auto;padding:13px 12px;font-size:13px" title="Reset giro">🔄</button>`;
   } else {
-    sb.innerHTML=`<button class="sbtn secondary" onclick="openPlansModal()" style="flex:0 0 auto;padding:13px 12px;font-size:13px">📚</button><button class="sbtn secondary" onclick="printPDF()" style="flex:0 0 auto;padding:13px 12px;font-size:13px">🖨️</button><button class="sbtn primary" onclick="savePlanAs()">💾 Salva strategia</button>`;
+    sb.innerHTML=`<button class="sbtn secondary" onclick="openPlansModal()" style="flex:0 0 auto;padding:13px 12px;font-size:13px">📚</button><button class="sbtn secondary" onclick="printPDF()" style="flex:0 0 auto;padding:13px 12px;font-size:13px">🖨️</button><button class="sbtn primary" onclick="savePlanAs()">💾 Salva strategia</button><button class="sbtn secondary" onclick="openResetModal()" style="flex:0 0 auto;padding:13px 12px;font-size:13px" title="Reset giro">🔄</button>`;
   }
 }
 
@@ -1732,11 +1733,15 @@ function addResetBtn() {
   const list=document.querySelector('.hole-list');
   if(!list) return;
   const wrap=document.createElement('div');
-  wrap.style.cssText='text-align:center;padding:16px 10px 8px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap';
+  wrap.style.cssText='padding:16px 12px 8px;display:flex;flex-direction:column;gap:10px';
   wrap.innerHTML=`
-    <button onclick="openPlansModal()" style="background:#1a3d2b;border:none;border-radius:20px;padding:11px 20px;font-size:13px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">📚 Strategie</button>
-    <button onclick="printPDF()" style="background:#fff;border:1.5px solid #1a3d2b;border-radius:20px;padding:11px 18px;font-size:13px;color:#1a3d2b;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🖨️ PDF</button>
-    <button onclick="openVoiceTest()" style="background:#185FA5;border:none;border-radius:20px;padding:11px 18px;font-size:13px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🔊 Test voce</button>
+    <div style="display:flex;gap:10px">
+      <button onclick="openPlansModal()" style="flex:1;background:#1a3d2b;border:none;border-radius:14px;padding:13px;font-size:14px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">📚 Strategie</button>
+      <button onclick="printPDF()" style="flex:1;background:#fff;border:1.5px solid #1a3d2b;border-radius:14px;padding:13px;font-size:14px;color:#1a3d2b;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🖨️ PDF</button>
+    </div>
+    <button onclick="openResetModal()" style="width:100%;background:#991b1b;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;color:#fff;cursor:pointer;font-family:Outfit,sans-serif">
+      🔄 Reset giro / Nuovo giro
+    </button>
   `;
   list.appendChild(wrap);
 }
@@ -2385,8 +2390,8 @@ function renderSettings(el){
     voiceOpts+=`<option value="${i}" ${sel}>${v.name} (${v.lang})</option>`;
   });
 
-  // Distanze mazze attuali
-  const clubRows = CLUBS.filter(c=>c.id!=='drive'&&c.id!=='putt').map(c=>`
+  // Distanze mazze attuali (incluso Putt)
+  const clubRows = CLUBS.filter(c=>c.id!=='drive').map(c=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       <div style="flex:1;font-size:13px;color:#1a202c;font-weight:500">${c.n}</div>
       <input type="number" value="${c.min}" onchange="updateClubDist('${c.id}','min',this.value)"

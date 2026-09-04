@@ -1459,7 +1459,8 @@ function renderList(){
     if(h.saved){cc+=' saved';st='✓ Giocata';}
     else if(globalMode==='play'){cc+=' planned';st='Piano pronto';}
     else cc+=' planned';
-    const showScore=(globalMode==='play'&&h.saved)||globalMode==='plan';
+    const giroAttivo=gameStartTime!==null;
+    const showScore=(globalMode==='play'&&h.saved&&giroAttivo)||(globalMode==='plan');
     const tot=h.saved?xTot:pTot;const stab=h.saved?xStab:pStab;
     const sc=stab>=2?'s2':stab===1?'s1':'s0';
     const gpsDot='';
@@ -1488,6 +1489,23 @@ function renderList(){
     document.getElementById('tl').textContent=done>0?pLordo:'–';
     document.getElementById('ts').textContent=done>0?S.filter(h=>h.saved).reduce((s,_,i)=>s+calcStab(i),0)+'pt':'–';
     document.getElementById('td').textContent=done+'/18';
+  }
+  // Aggiungi sempre i pulsanti in fondo alla lista
+  const existingBtns=document.getElementById('reset-bar-list');
+  if(!existingBtns){
+    const wrap=document.createElement('div');
+    wrap.id='reset-bar-list';
+    wrap.style.cssText='padding:14px 12px 8px;display:flex;flex-direction:column;gap:10px';
+    wrap.innerHTML=`
+      <div style="display:flex;gap:10px">
+        <button onclick="openPlansModal()" style="flex:1;background:#1a3d2b;border:none;border-radius:14px;padding:13px;font-size:14px;color:#fff;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">📚 Strategie</button>
+        <button onclick="printPDF()" style="flex:1;background:#fff;border:1.5px solid #1a3d2b;border-radius:14px;padding:13px;font-size:14px;color:#1a3d2b;cursor:pointer;font-family:Outfit,sans-serif;font-weight:600">🖨️ PDF</button>
+      </div>
+      <button onclick="openResetModal()" style="width:100%;background:#991b1b;border:none;border-radius:14px;padding:16px;font-size:17px;font-weight:700;color:#fff;cursor:pointer;font-family:Outfit,sans-serif">
+        🔄 Reset giro / Nuovo giro
+      </button>
+    `;
+    document.getElementById('hole-list').appendChild(wrap);
   }
 }
 
@@ -1571,13 +1589,17 @@ function openResetModal(){
 
 function resetKeepFlags(){
   localStorage.removeItem(ACTIVE_KEY);
+  localStorage.removeItem('golf_start_time');
+  gameStartTime=null;
   location.reload();
 }
 
 function resetFull(){
-  if(!confirm('Sei sicuro? Verranno cancellate anche le posizioni GPS delle bandiere.')) return;
+  if(!confirm('Sei sicuro? Verranno cancellate anche le posizioni GPS delle bandiere.'))return;
   localStorage.removeItem(ACTIVE_KEY);
   localStorage.removeItem('golf_sv_flags');
+  localStorage.removeItem('golf_start_time');
+  gameStartTime=null;
   location.reload();
 }
 
